@@ -238,6 +238,12 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .nodate[aria-pressed="true"] { border: 0; background: var(--solid); color: var(--onSolid); }
 .del { min-height: 44px; border: 0; background: transparent; font-size: 15px; font-weight: 600; color: var(--danger); }
 .backup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 4px 0 12px; }
+.filebtn { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; font-size: 100px; }
+.filebtn:focus-within { outline: 2px solid var(--accText); outline-offset: 2px; }
+.start { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.start b { font-size: 17px; }
+.start p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .okmsg { font-size: 13px; font-weight: 600; color: var(--pos); padding-bottom: 10px; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); font-size: 15px; }
 </style>
@@ -865,7 +871,14 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       ${rows.map((r) => html`<${Row} key=${r.key} r=${r} />`)}
     </section>`;
 
+    const isEmpty = !data.fijos.length && !data.deudas.length && !data.caprichos.length && data.periods.every((q) => !String(q.saldo || '').trim() && !q.items.length);
     const mainScreen = html`<div className="wrap" key="main">
+      ${isEmpty ? html`<section className="card start" aria-label="Empezar">
+        <b>Tu app está vacía</b>
+        <p>Si tienes una copia de Mi mes (el archivo mi-mes-datos.json), cárgala aquí y aparecerán tus meses, fijos y deudas. Si prefieres empezar de cero, escribe abajo lo que tienes en la cuenta y añade tus gastos.</p>
+        <label className="btn-solid filebtn" style=${{ minHeight: '48px', justifyContent: 'center', fontSize: '15px' }}>Cargar mi copia<input type="file" onChange=${importBackup} aria-label="Elegir archivo de copia" /></label>
+        ${backupMsg ? html`<p className="okmsg" role="status" style=${{ paddingBottom: 0 }}>${backupMsg}</p>` : null}
+      </section>` : null}
       <header className="monthbar">
         <button className="btn-round" aria-label="Mes anterior" aria-disabled=${pi === 0 ? 'true' : 'false'} onClick=${() => pi > 0 && setPiSel(pi - 1)}><${Icon} size="20"><path d="M15 6l-6 6 6 6"></path><//></button>
         <div><h1>${miName(p.mi, CURY)}</h1><span className="st">${status2}</span></div>
@@ -1035,9 +1048,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         <p className="note" style=${{ padding: '4px 0 6px' }}>Se guardan solo en este iPhone, no en internet. Haz una copia de vez en cuando y guárdala en Archivos o iCloud: si cambias de móvil o borras la app, con ella lo recuperas todo.</p>
         <div className="backup">
           <button className="btn-line" onClick=${exportBackup}>Hacer copia</button>
-          <button className="btn-line" onClick=${() => fileRef.current && fileRef.current.click()}>Cargar copia</button>
+          <label className="btn-line filebtn">Cargar copia<input ref=${fileRef} type="file" onChange=${importBackup} aria-label="Elegir archivo de copia" /></label>
         </div>
-        <input ref=${fileRef} type="file" accept="application/json,.json" hidden onChange=${importBackup} aria-label="Elegir archivo de copia" />
         ${backupMsg ? html`<p className="okmsg" role="status">${backupMsg}</p>` : null}
       </section>
     </div>`;
