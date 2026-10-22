@@ -244,6 +244,14 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .start { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
 .start b { font-size: 17px; }
 .start p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.monthbar .dayline { display: block; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+.monthbar .dayline b { color: var(--ink); font-size: 15px; }
+.btn-next { min-height: 50px; border-radius: 18px; border: 1.5px solid var(--accText); background: var(--card); color: var(--accText); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; }
+.confirm { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.confirm b { font-size: 17px; }
+.confirm p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.confirm .backup { padding: 4px 0 0; }
+.viewlink { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 18px; background: var(--infoBg); color: var(--infoFg); font-size: 13px; font-weight: 700; text-decoration: none; }
 .okmsg { font-size: 13px; font-weight: 600; color: var(--pos); padding-bottom: 10px; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); font-size: 15px; }
 </style>
@@ -560,6 +568,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   const html = htm.bind(React.createElement);
 
   const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const WD = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
   const SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const FREQ = { 1: 'Cada mes', 2: 'Cada 2 meses', 3: 'Cada 3 meses', 12: 'Cada año' };
   const BGS = [
@@ -668,6 +677,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const [openCob, setOpenCob] = useState(false);
     const [openComp, setOpenComp] = useState(false);
     const [capSort, setCapSort] = useState('imp');
+    const [compCat, setCompCat] = useState('capricho');
+    const [confirmNext, setConfirmNext] = useState(false);
     const [edit, setEdit] = useState(null);
     const [dEdit, setDEdit] = useState(null);
     const [cEdit, setCEdit] = useState(null);
@@ -772,7 +783,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const openItem = (kind, obj) => setEdit({ kind, id: obj ? obj.id : null, name: obj ? obj.name : '', amount: obj ? rs(obj.amount) : '', sign: obj ? obj.sign : -1, approx: obj ? !!obj.approx : false, freq: kind === 'fijo' ? obj.freq : 0,
       altOn: !!(obj && obj.alt), altWhen: obj && obj.alt ? obj.alt.whenId : '', altAmount: obj && obj.alt ? rs(obj.alt.amount) : '' });
     const openDeuda = (d) => setDEdit(d ? { id: d.id, name: d.name, cuota: rs(d.cuota), n: String(nAt(d, CURMI)), total: String(d.total) } : { id: null, name: '', cuota: '', n: '1', total: '12' });
-    const openCap = (x) => setCEdit(x ? { id: x.id, name: x.name, amount: rs(x.amount), where: x.where || '', imp: x.imp, mi: x.mi, date: x.date || '' } : { id: null, name: '', amount: '', where: '', imp: 2, mi: null, date: '' });
+    const openCap = (x) => setCEdit(x
+      ? { id: x.id, name: x.name, amount: rs(x.amount), where: x.where || '', link: x.link || '', imp: x.imp, mi: x.mi, date: x.date || '', cat: x.cat || 'capricho' }
+      : { id: null, name: '', amount: '', where: '', link: '', imp: 2, mi: null, date: '', cat: compCat });
     const closeAll = () => { setEdit(null); setDEdit(null); setCEdit(null); };
 
     const mkRow = (en) => {
@@ -850,7 +863,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     };
     const saveCap = () => {
       const e = cEdit;
-      const vals = { name: (e.name || '').trim() || 'Capricho', amount: num(e.amount), where: (e.where || '').trim(), imp: e.imp, mi: e.mi, date: e.date };
+      const vals = { name: (e.name || '').trim() || (e.cat === 'casa' ? 'Cosa para casa' : 'Capricho'), amount: num(e.amount), where: (e.where || '').trim(), link: (e.link || '').trim(), imp: e.imp, mi: e.mi, date: e.date, cat: e.cat || 'capricho' };
       change((d) => Object.assign({}, d, { caprichos: e.id ? d.caprichos.map((x) => (x.id === e.id ? Object.assign({}, x, vals) : x)) : d.caprichos.concat([Object.assign({ id: uid(), bought: false }, vals)]) }));
       setCEdit(null);
     };
@@ -871,6 +884,28 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       ${rows.map((r) => html`<${Row} key=${r.key} r=${r} />`)}
     </section>`;
 
+    const nextName = MONTHS[(p.mi + 1) % 12];
+    const nextSaldo = pi < data.periods.length - 1 ? String(data.periods[pi + 1].saldo || '').trim() : '';
+    const octText = 'Lo que te queda libre en ' + MONTHS[p.mi % 12] + ' (' + F(c.total) + ' €) pasa a “Tengo en la cuenta” de ' + nextName + ', y ' + MONTHS[p.mi % 12] + ' se cierra hoy.' +
+      (nextSaldo ? ' Sustituye los ' + F(num(nextSaldo)) + ' € que tenías puestos allí.' : '') + ' Tus ingresos y gastos de ' + nextName + ' aparecerán como pendientes.';
+    const passToNext = () => {
+      const left = Math.round(c.total * 100) / 100;
+      const oldCob = pd(p.cobro);
+      change((d) => {
+        let periods = d.periods.map((q, i) => (i === pi ? Object.assign({}, q, { cobro: iso(t0) }) : q));
+        if (pi === periods.length - 1) {
+          const want = Math.max(1, Math.min(31, parseInt(d.prefs.diaCobro, 10) || oldCob.getDate()));
+          const base = oldCob > t0 ? oldCob : t0;
+          const nd = new Date(base.getFullYear(), base.getMonth() + 1, Math.min(want, new Date(base.getFullYear(), base.getMonth() + 2, 0).getDate()));
+          periods = periods.concat([{ mi: p.mi + 1, saldo: '', cobro: iso(nd), done: {}, items: [] }]);
+        }
+        periods = periods.map((q, i) => (i === pi + 1 ? Object.assign({}, q, { saldo: (left < 0 ? '-' : '') + rs(left), carry: { amount: left, mi: p.mi } }) : q));
+        return Object.assign({}, d, { periods });
+      });
+      setConfirmNext(false);
+      setPiSel(pi + 1);
+      setDrafts({});
+    };
     const isEmpty = !data.fijos.length && !data.deudas.length && !data.caprichos.length && data.periods.every((q) => !String(q.saldo || '').trim() && !q.items.length);
     const mainScreen = html`<div className="wrap" key="main">
       ${isEmpty ? html`<section className="card start" aria-label="Empezar">
@@ -881,9 +916,20 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       </section>` : null}
       <header className="monthbar">
         <button className="btn-round" aria-label="Mes anterior" aria-disabled=${pi === 0 ? 'true' : 'false'} onClick=${() => pi > 0 && setPiSel(pi - 1)}><${Icon} size="20"><path d="M15 6l-6 6 6 6"></path><//></button>
-        <div><h1>${miName(p.mi, CURY)}</h1><span className="st">${status2}</span></div>
+        <div><h1>${miName(p.mi, CURY)}</h1><span className="dayline"><b>${cap(WD[t0.getDay()])} ${t0.getDate()}</b> · ${status2}</span></div>
         <button className="btn-round" aria-label="Mes siguiente" onClick=${nextPeriod}><${Icon} size="20"><path d="M9 6l6 6-6 6"></path><//></button>
       </header>
+
+      ${status2 === 'Ahora' && !confirmNext ? html`<button className="btn-next" onClick=${() => setConfirmNext(true)}>
+        <${Icon} size="20"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path><//>Ya he cobrado · pasar a ${nextName}</button>` : null}
+      ${status2 === 'Ahora' && confirmNext ? html`<section className="card confirm" aria-label=${'Pasar a ' + nextName}>
+        <b>¿Empezar ${nextName}?</b>
+        <p>${octText}</p>
+        <div className="backup">
+          <button className="btn-line" onClick=${() => setConfirmNext(false)}>Cancelar</button>
+          <button className="btn-solid" style=${{ justifyContent: 'center', minHeight: '48px', borderRadius: '16px', fontSize: '15px' }} onClick=${passToNext}>Pasar a ${nextName}</button>
+        </div>
+      </section>` : null}
 
       <section className="hero" aria-label="Lo que puedo gastar">
         <span className="lbl">Libre hasta que vuelva a cobrar</span>
@@ -897,6 +943,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         <div style=${{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <label className="t" htmlFor="saldo">Tengo en la cuenta</label>
           <div className="field"><input id="saldo" inputMode="decimal" placeholder="0" value=${hide ? '' : p.saldo} disabled=${hide} onChange=${(e) => setPeriod({ saldo: e.target.value })} /><span>€</span></div>
+          ${p.carry ? html`<span className="note" style=${{ color: 'var(--pos)', fontWeight: 600 }}>Empezaste con ${F(p.carry.amount)} € que te sobraron de ${MONTHS[p.carry.mi % 12]}.</span>` : null}
           <span className="note">Después de un gasto, escribe aquí lo que te queda.</span>
         </div>
         <div className="cob"><label htmlFor="cobro" style=${{ fontWeight: 600 }}>Vuelvo a cobrar el</label>
@@ -968,17 +1015,25 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     // Caprichos
     const IMP = { 3: ['Importante', 'hi'], 2: ['Me apetece', 'md'], 1: ['Sin prisa', ''] };
     const whenKey = (x) => (x.date ? pd(x.date).getTime() : x.mi != null ? new Date(Math.floor(x.mi / 12), x.mi % 12, 28).getTime() : Infinity);
-    const capPend = data.caprichos.filter((x) => !x.bought).slice().sort((a, b) => (capSort === 'imp' ? (b.imp - a.imp) || (whenKey(a) - whenKey(b)) : (whenKey(a) - whenKey(b)) || (b.imp - a.imp)));
-    const capBought = data.caprichos.filter((x) => x.bought);
+    const inCat = (x) => (x.cat || 'capricho') === compCat;
+    const isCasa = compCat === 'casa';
+    const countCat = (cat) => data.caprichos.filter((x) => !x.bought && (x.cat || 'capricho') === cat).length;
+    const capPend = data.caprichos.filter((x) => !x.bought && inCat(x)).slice().sort((a, b) => (capSort === 'imp' ? (b.imp - a.imp) || (whenKey(a) - whenKey(b)) : (whenKey(a) - whenKey(b)) || (b.imp - a.imp)));
+    const capBought = data.caprichos.filter((x) => x.bought && inCat(x));
     const linkRe = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
     const toggleBought = (x) => change((d) => Object.assign({}, d, { caprichos: d.caprichos.map((y) => (y.id === x.id ? Object.assign({}, y, { bought: !y.bought }) : y)) }));
-    const curLibre = curPi >= 0 ? calc(data, curPi).total : c.total;
-    const curLibreMonth = MONTHS[(curPi >= 0 ? data.periods[curPi].mi : p.mi) % 12];
+    const actPi = todayIndex(data.periods);
+    const curLibre = calc(data, actPi).total;
+    const curLibreMonth = MONTHS[data.periods[actPi].mi % 12];
     const caprichosScreen = html`<div className="wrap" key="caprichos">
       <div style=${{ display: 'flex', justifyContent: 'flex-end' }}><button className="btn-solid" onClick=${() => openCap(null)}><${Plus} />Añadir</button></div>
-      <header><span className="eyebrow">Compras pendientes que me apetecen</span><h1 className="h1">Caprichos</h1></header>
+      <header><span className="eyebrow">Lo que quiero o necesito comprar</span><h1 className="h1">Compras</h1></header>
+      <div className="segctl" role="group" aria-label="Lista" style=${{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', background: 'var(--card)' }}>
+        <button aria-pressed=${!isCasa ? 'true' : 'false'} onClick=${() => setCompCat('capricho')} style=${!isCasa ? { background: 'var(--solid)', color: 'var(--onSolid)' } : null}>Caprichos${countCat('capricho') ? ' · ' + countCat('capricho') : ''}</button>
+        <button aria-pressed=${isCasa ? 'true' : 'false'} onClick=${() => setCompCat('casa')} style=${isCasa ? { background: 'var(--solid)', color: 'var(--onSolid)' } : null}>Cosas casa${countCat('casa') ? ' · ' + countCat('casa') : ''}</button>
+      </div>
       <div className="sum2">
-        <div className="dk"><span>${capPend.length + (capPend.length === 1 ? ' capricho pendiente' : ' caprichos pendientes')}</span><b>${F(capPend.reduce((a, x) => a + x.amount, 0))} €</b></div>
+        <div className="dk"><span>${capPend.length + (isCasa ? (capPend.length === 1 ? ' cosa pendiente' : ' cosas pendientes') : (capPend.length === 1 ? ' capricho pendiente' : ' caprichos pendientes'))}</span><b>${F(capPend.reduce((a, x) => a + x.amount, 0))} €</b></div>
         <div className="lt"><span>Libre en ${curLibreMonth}</span><b>${F(curLibre)} €</b></div>
       </div>
       <div className="segctl on-page" role="group" aria-label="Ordenar" style=${{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
@@ -1001,8 +1056,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
           </div>
           ${x.where ? html`<div className="where"><${Icon} size="15"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><//>
             ${isLink ? html`<a href=${/^https?:\/\//i.test(x.where) ? x.where : 'https://' + x.where} target="_blank" rel="noopener">${x.where.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0]}</a>` : html`<span>${x.where}</span>`}</div>` : null}
+          ${x.link ? html`<div style=${{ paddingLeft: '48px', paddingTop: '4px' }}><a className="viewlink" href=${/^https?:\/\//i.test(x.link) ? x.link : 'https://' + x.link} target="_blank" rel="noopener"><${Icon} size="15"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path><//>Ver producto</a></div>` : null}
         </article>`;
-      }) : html`<p className="card" style=${{ margin: 0, padding: '18px', color: 'var(--muted)' }}>Nada pendiente. Apunta aquí lo próximo que te apetezca comprar.</p>`}
+      }) : html`<p className="card" style=${{ margin: 0, padding: '18px', color: 'var(--muted)' }}>${isCasa ? 'Nada pendiente para casa. Apunta aquí lo que haga falta comprar.' : 'Nada pendiente. Apunta aquí lo próximo que te apetezca comprar.'}</p>`}
       <section className="group gray" aria-label="Comprados">
         <button className="toggle" aria-expanded=${openComp ? 'true' : 'false'} onClick=${() => setOpenComp(!openComp)}>
           <${Chev} open=${openComp} /><span className="tx"><b>Comprados</b></span>
@@ -1098,12 +1154,18 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         <span className="note">Te quedan ${tot - n + 1} cuotas contando la de ${MONTHS[CURMI % 12]}: ${F((tot - n + 1) * num(dEdit.cuota))} €. Cada cuota aparecerá sola en los pendientes de su mes.</span>
       <//>`;
     } else if (cEdit) {
-      sheetTitle = cEdit.id ? 'Editar capricho' : 'Nuevo capricho';
+      const casa = cEdit.cat === 'casa';
+      sheetTitle = cEdit.id ? (casa ? 'Editar cosa para casa' : 'Editar capricho') : (casa ? 'Nueva cosa para casa' : 'Nuevo capricho');
       const noDate = cEdit.mi == null && !cEdit.date;
       sheetBody = html`<${React.Fragment}>
+        <div className="segctl" role="group" aria-label="Lista" style=${{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <button aria-pressed=${!casa ? 'true' : 'false'} onClick=${() => setCEdit(Object.assign({}, cEdit, { cat: 'capricho' }))}>Capricho</button>
+          <button aria-pressed=${casa ? 'true' : 'false'} onClick=${() => setCEdit(Object.assign({}, cEdit, { cat: 'casa' }))}>Cosas casa</button>
+        </div>
         <div className="fld"><label htmlFor="c-name">Concepto</label><input id="c-name" className="inp" placeholder="¿Qué te quieres comprar?" value=${cEdit.name} onChange=${(e) => setCEdit(Object.assign({}, cEdit, { name: e.target.value }))} /></div>
         <div className="fld"><label htmlFor="c-amount">Cantidad (€)</label><input id="c-amount" className="inp big" inputMode="decimal" placeholder="0" value=${cEdit.amount} onChange=${(e) => setCEdit(Object.assign({}, cEdit, { amount: e.target.value }))} /></div>
-        <div className="fld"><label htmlFor="c-where">Lugar o web</label><input id="c-where" className="inp" placeholder="Tienda, o pega el enlace" value=${cEdit.where} onChange=${(e) => setCEdit(Object.assign({}, cEdit, { where: e.target.value }))} style=${{ fontWeight: 500 }} /></div>
+        <div className="fld"><label htmlFor="c-where">Lugar o web</label><input id="c-where" className="inp" placeholder="Tienda o web" value=${cEdit.where} onChange=${(e) => setCEdit(Object.assign({}, cEdit, { where: e.target.value }))} style=${{ fontWeight: 500 }} /></div>
+        <div className="fld"><label htmlFor="c-link">Enlace del producto <span style=${{ fontWeight: 500 }}>(opcional)</span></label><input id="c-link" className="inp" type="url" inputMode="url" autoCapitalize="off" autoCorrect="off" placeholder="Pega aquí el enlace" value=${cEdit.link} onChange=${(e) => setCEdit(Object.assign({}, cEdit, { link: e.target.value }))} style=${{ fontWeight: 500 }} /></div>
         <div className="fld" role="group" aria-label="Importancia"><span className="lbl">Importancia</span>
           <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>${[[3, 'Importante'], [2, 'Me apetece'], [1, 'Sin prisa']].map((q) => html`<button key=${q[0]} className="chip" aria-pressed=${cEdit.imp === q[0] ? 'true' : 'false'} onClick=${() => setCEdit(Object.assign({}, cEdit, { imp: q[0] }))}>${q[1]}</button>`)}</div></div>
         <div className="fld" role="group" aria-label="Cuándo"><span className="lbl">¿Cuándo lo comprarías?</span>
@@ -1119,7 +1181,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
     const tabs = [['main', 'Mi mes', html`<rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M4 10h16M9 3v4M15 3v4"></path>`],
       ['deudas', 'Deudas', html`<rect x="3" y="6" width="18" height="12" rx="3"></rect><path d="M3 10h18M7 15h4"></path>`],
-      ['caprichos', 'Caprichos', html`<path d="M6 8h12l-1 12H7L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path>`],
+      ['caprichos', 'Compras', html`<path d="M6 8h12l-1 12H7L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path>`],
       ['ajustes', 'Ajustes', html`<path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle>`]];
 
     const go = (s) => { setScreen(s); try { window.scrollTo(0, 0); } catch (e) {} };
