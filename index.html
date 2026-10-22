@@ -34,7 +34,8 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
   --bg: var(--bg-l); --card: #FFFFFF; --card2: #EEF0F3; --line: #ECEEF2; --border: #D3D8E0;
   --ink: #111318; --muted: #5B616E; --muted2: #4F5562;
   --group: rgba(17,19,24,0.06); --groupLine: rgba(17,19,24,0.09);
-  --hero: #111318; --solid: #111318; --onSolid: #FFFFFF; --segOff: #DDE1E8; --chk: #8A91A0; --dash: #9AA1AE; --track: #C3C8D2;
+  --hero-l: #111318; --hero-d: #262A35;
+  --hero: var(--hero-l); --solid: var(--hero-l); --onSolid: #FFFFFF; --segOff: #DDE1E8; --chk: #8A91A0; --dash: #9AA1AE; --track: #C3C8D2;
   --pos: #0F6B63; --posBox: #0F6B63; --danger: #B42318; --infoBg: #E6EAFF; --infoFg: #1E34B8; --hiBg: #FFEDE3; --hiFg: #9A3412;
   --glass: rgba(255,255,255,0.58); --glassBorder: rgba(255,255,255,0.75); --glassActive: rgba(255,255,255,0.92);
   --glassShadow: 0 12px 32px rgba(17,19,24,0.16), inset 0 1px 0 rgba(255,255,255,0.9);
@@ -46,7 +47,7 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
     --bg: var(--bg-d); --card: #1C1F27; --card2: #2A2E38; --line: #2C303A; --border: #3A3F4A;
     --ink: #F2F3F5; --muted: #A9AFBC; --muted2: #B8BDC8;
     --group: rgba(255,255,255,0.06); --groupLine: rgba(255,255,255,0.08);
-    --hero: #262A35; --solid: #F2F3F5; --onSolid: #111318; --segOff: #3A3F4A; --chk: #7A8190; --dash: #5A6070; --track: #4A505C;
+    --hero: var(--hero-d); --solid: #F2F3F5; --onSolid: #111318; --segOff: #3A3F4A; --chk: #7A8190; --dash: #5A6070; --track: #4A505C;
     --pos: #4FD1C0; --posBox: #14917F; --danger: #FF8A80; --infoBg: #232B52; --infoFg: #B9C4FF; --hiBg: #3D2618; --hiFg: #FFC9A8;
     --glass: rgba(40,44,56,0.58); --glassBorder: rgba(255,255,255,0.14); --glassActive: rgba(255,255,255,0.14);
     --glassShadow: 0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.14);
@@ -57,7 +58,7 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
   --bg: var(--bg-d); --card: #1C1F27; --card2: #2A2E38; --line: #2C303A; --border: #3A3F4A;
   --ink: #F2F3F5; --muted: #A9AFBC; --muted2: #B8BDC8;
   --group: rgba(255,255,255,0.06); --groupLine: rgba(255,255,255,0.08);
-  --hero: #262A35; --solid: #F2F3F5; --onSolid: #111318; --segOff: #3A3F4A; --chk: #7A8190; --dash: #5A6070; --track: #4A505C;
+  --hero: var(--hero-d); --solid: #F2F3F5; --onSolid: #111318; --segOff: #3A3F4A; --chk: #7A8190; --dash: #5A6070; --track: #4A505C;
   --pos: #4FD1C0; --posBox: #14917F; --danger: #FF8A80; --infoBg: #232B52; --infoFg: #B9C4FF; --hiBg: #3D2618; --hiFg: #FFC9A8;
   --glass: rgba(40,44,56,0.58); --glassBorder: rgba(255,255,255,0.14); --glassActive: rgba(255,255,255,0.14);
   --glassShadow: 0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.14);
@@ -68,6 +69,11 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .app[data-bg="menta"] { --bg-l: #E8F5EE; --bg-d: #121B16; }
 .app[data-bg="cielo"] { --bg-l: #E7F1FB; --bg-d: #111921; }
 .app[data-bg="lavanda"] { --bg-l: #EFEBFB; --bg-d: #17152A; }
+.app[data-hero="azul"] { --hero-l: #14254F; --hero-d: #1E2D5C; }
+.app[data-hero="verde"] { --hero-l: #123A2C; --hero-d: #1A4636; }
+.app[data-hero="marron"] { --hero-l: #3B2618; --hero-d: #4A3122; }
+.app[data-hero="rojo"] { --hero-l: #4A1418; --hero-d: #5A1D22; }
+.app[data-hero="violeta"] { --hero-l: #2E1A4F; --hero-d: #3A2460; }
 
 .app { min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; transition: background-color .25s; }
 :where(.app) :where(button, input) { font: inherit; color: inherit; }
@@ -97,7 +103,7 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .hero .big { font-family: var(--font-display); font-size: clamp(56px, 19vw, 76px); font-weight: 800; letter-spacing: -0.04em; line-height: .9; font-variant-numeric: tabular-nums; }
 .hero .big.neg { color: #FF8A4C; }
 .hero .eur { font-family: var(--font-display); font-size: 30px; font-weight: 600; color: var(--accSoft); }
-.hero .perday { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #2C303A; }
+.hero .perday { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.12); }
 .hero .perday b { font-family: var(--font-display); font-size: 34px; font-weight: 800; color: var(--accSoft); font-variant-numeric: tabular-nums; }
 .hero .perday .d { flex-basis: 100%; font-size: 14px; color: #C9CEDA; }
 .hero .formula { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.07); font-family: var(--font-mono); font-size: 13px; line-height: 1.5; color: #C9CEDA; overflow-wrap: anywhere; }
@@ -254,6 +260,13 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .viewlink { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 18px; background: var(--infoBg); color: var(--infoFg); font-size: 13px; font-weight: 700; text-decoration: none; }
 .hero .prev { margin: 0; font-size: 14px; line-height: 1.45; color: #C9CEDA; }
 .hero .prev b { color: #FFFFFF; font-variant-numeric: tabular-nums; }
+.stepper { display: flex; align-items: center; gap: 14px; }
+.stepper span { min-width: 92px; text-align: center; font-size: 16px; }
+.stepper b { font-family: var(--font-display); font-size: 24px; }
+.heros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.herochip { min-height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border-radius: 16px; padding: 8px 4px; border: 1px solid var(--border); background: var(--card); font-size: 13px; font-weight: 600; }
+.herochip[aria-pressed="true"] { border: 2px solid var(--ink); }
+.herochip .sw { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
 .okmsg { font-size: 13px; font-weight: 600; color: var(--pos); padding-bottom: 10px; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); font-size: 15px; }
 </style>
@@ -591,7 +604,11 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   const iso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const today = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
   const miOf = (d) => d.getFullYear() * 12 + d.getMonth();
-  const due = (f, mi) => mi >= f.start && (mi - f.start) % f.freq === 0;
+  const due = (f, mi) => mi >= f.start && (f.end == null || mi <= f.end) && (mi - f.start) % f.freq === 0;
+  const HEROS = [
+    { id: 'negro', name: 'Negro', l: '#111318' }, { id: 'azul', name: 'Azul', l: '#14254F' }, { id: 'verde', name: 'Verde', l: '#123A2C' },
+    { id: 'marron', name: 'Marrón', l: '#3B2618' }, { id: 'rojo', name: 'Rojo', l: '#4A1418' }, { id: 'violeta', name: 'Violeta', l: '#2E1A4F' }
+  ];
   const nAt = (d, mi) => d.n0 + (mi - d.mi0);
   const span = (a, b) => ((b - a + 12) % 12) + 1;
   const uid = () => 'n' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
@@ -605,7 +622,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     return {
       v: 1, mig: 2, savedAt: 0, fijos: [], deudas: [], caprichos: [],
       periods: [{ mi: miOf(t), saldo: '', cobro: iso(cob), done: {}, items: [] }],
-      prefs: { mode: 'system', bgId: 'neutro', accent: '#2F4BFF', hide: false, showFormula: true, diaCobro: '28' }
+      prefs: { mode: 'system', bgId: 'neutro', hero: 'negro', accent: '#2F4BFF', hide: false, showFormula: true, diaCobro: '28' }
     };
   }
   function normalize(d) {
@@ -797,7 +814,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       else change((d) => Object.assign({}, d, { periods: d.periods.map((q, i) => (i === pi ? Object.assign({}, q, { items: q.items.map((x) => (x.id === id ? Object.assign({}, x, { amount: v }) : x)) }) : q)) }));
     };
 
-    const openItem = (kind, obj) => setEdit({ kind, id: obj ? obj.id : null, name: obj ? obj.name : '', amount: obj ? rs(obj.amount) : '', sign: obj ? obj.sign : -1, approx: obj ? !!obj.approx : false, freq: kind === 'fijo' ? obj.freq : 0,
+    const openItem = (kind, obj) => setEdit({ kind, id: obj ? obj.id : null, name: obj ? obj.name : '', amount: obj ? rs(obj.amount) : '', sign: obj ? obj.sign : -1, approx: obj ? !!obj.approx : false, freq: kind === 'fijo' ? obj.freq : 0, start: obj && obj.start != null ? obj.start : null,
+      months: obj && obj.end != null ? obj.end - obj.start + 1 : 1,
       group: obj ? (obj.group || (kind === 'fijo' ? 'fijos' : 'puntuales')) : 'puntuales', groupTouched: !!obj,
       altOn: !!(obj && obj.alt), altWhen: obj && obj.alt ? obj.alt.whenId : '', altAmount: obj && obj.alt ? rs(obj.alt.amount) : '' });
     const openDeuda = (d) => setDEdit(d ? { id: d.id, name: d.name, cuota: rs(d.cuota), n: String(nAt(d, CURMI)), total: String(d.total) } : { id: null, name: '', cuota: '', n: '1', total: '12' });
@@ -811,7 +829,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       const done = !!p.done[x.id];
       const inc = en.sign > 0;
       const parts = [];
-      if (en.kind === 'fijo') parts.push(FREQ[x.freq] || '');
+      if (en.kind === 'fijo') parts.push(x.end != null ? 'Mes ' + (p.mi - x.start + 1) + ' de ' + (x.end - x.start + 1) : (FREQ[x.freq] || ''));
       if (en.kind === 'deuda') parts.push('Cuota ' + en.n + ' de ' + x.total);
       if (en.kind === 'fijo' && x.alt && x.alt.whenId) { const w = data.fijos.find((y) => y.id === x.alt.whenId); if (w) parts.push((en.altOn ? 'mes con ' : 'mes sin ') + w.name.toLowerCase()); }
       if (x.approx) parts.push('aprox.');
@@ -858,19 +876,23 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       const vals = { name: (e.name || '').trim() || 'Sin nombre', amount: num(e.amount), sign: e.sign, approx: e.approx, group: e.sign < 0 ? e.group : undefined };
       const alt = e.altOn && e.altWhen ? { whenId: e.altWhen, amount: num(e.altAmount) } : null;
       const id = e.id || uid();
+      const isPunt = e.sign < 0 && e.group === 'puntuales';
+      const months = Math.max(1, Math.min(60, parseInt(e.months, 10) || 1));
+      const freq = isPunt ? (months > 1 ? 1 : 0) : e.freq;
       change((d) => {
         const per = d.periods[pi];
         let fijos = d.fijos;
         let items = per.items;
+        const endFor = (start) => (isPunt && months > 1 ? start + months - 1 : null);
         if (e.kind === 'fijo') {
-          if (e.freq > 0) fijos = fijos.map((f) => (f.id === id ? Object.assign({}, f, vals, { freq: e.freq, alt }) : f));
+          if (freq > 0) fijos = fijos.map((f) => (f.id === id ? Object.assign({}, f, vals, { freq, alt: isPunt ? null : alt, end: endFor(f.start) }) : f));
           else { fijos = fijos.filter((f) => f.id !== id); items = items.concat([Object.assign({ id }, vals)]); }
         } else if (e.kind === 'item') {
-          if (e.freq === 0) items = items.map((x) => (x.id === id ? Object.assign({}, x, vals) : x));
-          else { items = items.filter((x) => x.id !== id); fijos = fijos.concat([Object.assign({ id, freq: e.freq, start: per.mi, alt }, vals)]); }
+          if (freq === 0) items = items.map((x) => (x.id === id ? Object.assign({}, x, vals) : x));
+          else { items = items.filter((x) => x.id !== id); fijos = fijos.concat([Object.assign({ id, freq, start: per.mi, end: endFor(per.mi), alt: isPunt ? null : alt }, vals)]); }
         } else {
-          if (e.freq === 0) items = items.concat([Object.assign({ id }, vals)]);
-          else fijos = fijos.concat([Object.assign({ id, freq: e.freq, start: per.mi, alt }, vals)]);
+          if (freq === 0) items = items.concat([Object.assign({ id }, vals)]);
+          else fijos = fijos.concat([Object.assign({ id, freq, start: per.mi, end: endFor(per.mi), alt: isPunt ? null : alt }, vals)]);
         }
         return Object.assign({}, d, { fijos, periods: d.periods.map((q, i) => (i === pi ? Object.assign({}, q, { items }) : q)) });
       });
@@ -1111,6 +1133,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         <div className="fgroup" role="group" aria-label="Color de fondo"><span className="lb">Color de fondo</span>
           <div className="bgs">${BGS.map((b) => html`<button key=${b.id} className="bgchip" aria-pressed=${prefs.bgId === b.id ? 'true' : 'false'} onClick=${() => setPrefs({ bgId: b.id })} style=${{ background: dark ? b.d : b.l }}>
             <span className="sw" style=${{ background: b.sw }}>${prefs.bgId === b.id ? html`<${Check} color="#111318" />` : null}</span>${b.name}</button>`)}</div></div>
+        <div className="fgroup" role="group" aria-label="Color de las zonas oscuras"><span className="lb">Color de las zonas oscuras</span>
+          <div className="heros">${HEROS.map((hh) => html`<button key=${hh.id} className="herochip" aria-pressed=${(prefs.hero || 'negro') === hh.id ? 'true' : 'false'} onClick=${() => setPrefs({ hero: hh.id })}>
+            <span className="sw" style=${{ background: hh.l }}>${(prefs.hero || 'negro') === hh.id ? html`<${Check} />` : null}</span>${hh.name}</button>`)}</div></div>
         <div className="fgroup" role="group" aria-label="Color de los botones"><span className="lb">Color de los botones</span>
           <div className="accs">${ACCENTS.map((a) => html`<button key=${a[0]} className="acc" aria-label=${a[2]} aria-pressed=${prefs.accent === a[0] ? 'true' : 'false'} onClick=${() => setPrefs({ accent: a[0] })} style=${{ background: a[0] }}></button>`)}</div></div>
       </section>
@@ -1123,7 +1148,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
           <input id="diacobro" className="daycob" inputMode="numeric" value=${prefs.diaCobro} onChange=${(e) => setPrefs({ diaCobro: e.target.value.replace(/[^0-9]/g, '').slice(0, 2) })} />
         </div>
       </section>
-      <button className="btn-line" onClick=${() => setPrefs({ mode: 'system', bgId: 'neutro', accent: '#2F4BFF', showFormula: true, hide: false })}>Restablecer apariencia</button>
+      <button className="btn-line" onClick=${() => setPrefs({ mode: 'system', bgId: 'neutro', hero: 'negro', accent: '#2F4BFF', showFormula: true, hide: false })}>Restablecer apariencia</button>
       <section className="card settings2" aria-label="Tus datos">
         <h2>Tus datos</h2>
         <p className="note" style=${{ padding: '4px 0 6px' }}>Se guardan solo en este iPhone, no en internet. Haz una copia de vez en cuando y guárdala en Archivos o iCloud: si cambias de móvil o borras la app, con ella lo recuperas todo.</p>
@@ -1141,6 +1166,10 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     if (edit) {
       sheetTitle = edit.id ? 'Editar' : 'Añadir';
       const fq = edit.freq;
+      const puntSheet = edit.sign < 0 && edit.group === 'puntuales';
+      const nMonths = Math.max(1, Math.min(60, parseInt(edit.months, 10) || 1));
+      const startMi = edit.kind === 'fijo' && edit.start != null ? edit.start : p.mi;
+      const setMonths = (n) => setEdit(Object.assign({}, edit, { months: Math.max(1, Math.min(60, n)) }));
       sheetBody = html`<${React.Fragment}>
         <div className="segctl" role="group" aria-label="Tipo" style=${{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
           <button aria-pressed=${edit.sign < 0 ? 'true' : 'false'} onClick=${() => setEdit(Object.assign({}, edit, { sign: -1 }))}>− Gasto</button>
@@ -1155,11 +1184,19 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
           <div className="fld"><label htmlFor="e-amount">Importe (€)</label><input id="e-amount" className="inp big" inputMode="decimal" placeholder="0" value=${edit.amount} onChange=${(e) => setEdit(Object.assign({}, edit, { amount: e.target.value }))} /></div>
           <button role="switch" aria-checked=${edit.approx ? 'true' : 'false'} onClick=${() => setEdit(Object.assign({}, edit, { approx: !edit.approx }))} style=${{ minHeight: '50px', display: 'flex', alignItems: 'center', gap: '8px', border: 0, background: 'transparent', padding: 0, fontSize: '14px', fontWeight: 600 }}><span className=${'track' + (edit.approx ? ' on' : '')}><i></i></span>Aprox.</button>
         </div>
-        <div className="fld" role="group" aria-label="Frecuencia"><span className="lbl">¿Cada cuánto?</span>
+        ${puntSheet ? html`<div className="fld" role="group" aria-label="Duración"><span className="lbl">¿Durante cuántos meses?</span>
+          <div className="stepper">
+            <button className="btn-round" aria-label="Un mes menos" aria-disabled=${nMonths <= 1 ? 'true' : 'false'} onClick=${() => setMonths(nMonths - 1)}><${Icon} size="20"><path d="M5 12h14"></path><//></button>
+            <span className="num"><b>${nMonths}</b> ${nMonths === 1 ? 'mes' : 'meses'}</span>
+            <button className="btn-round" aria-label="Un mes más" onClick=${() => setMonths(nMonths + 1)}><${Icon} size="20"><path d="M12 5v14M5 12h14"></path><//></button>
+          </div>
+          <span className="note">${nMonths === 1 ? 'Solo aparece en ' + MONTHS[startMi % 12] + '.' : 'Aparecerá en tus puntuales de ' + MONTHS[startMi % 12] + ' a ' + miName(startMi + nMonths - 1, CURY) + ' (' + nMonths + ' meses) y luego desaparece sola.'}</span>
+        </div>` : null}
+        ${puntSheet ? null : html`<div className="fld" role="group" aria-label="Frecuencia"><span className="lbl">¿Cada cuánto?</span>
           <div className="chips">${[[0, 'Solo este mes'], [1, 'Cada mes'], [2, 'Cada 2 meses'], [3, 'Cada 3 meses'], [12, 'Cada año']].map((q) => html`<button key=${q[0]} className="chip" aria-pressed=${fq === q[0] ? 'true' : 'false'} onClick=${() => setEdit(Object.assign({}, edit, { freq: q[0] }, edit.groupTouched ? {} : { group: q[0] > 0 ? 'fijos' : 'puntuales' }))}>${q[1]}</button>`)}</div>
           <span className="note">${fq === 0 ? 'Solo aparece en ' + MONTHS[p.mi % 12] + '.' : 'Aparecerá sola en tu lista ' + (fq === 1 ? 'todos los meses' : fq === 12 ? 'una vez al año' : 'cada ' + fq + ' meses') + ' desde ' + MONTHS[p.mi % 12] + '. Al marcarla como cobrada solo se marca en ese mes.'}</span>
-        </div>
-        ${fq > 0 ? html`<div className="fld" style=${{ gap: '10px' }}>
+        </div>`}
+        ${fq > 0 && !puntSheet ? html`<div className="fld" style=${{ gap: '10px' }}>
           <button className="sw-row" style=${{ borderTop: '1px solid var(--line)' }} role="switch" aria-checked=${edit.altOn ? 'true' : 'false'} onClick=${() => setEdit(Object.assign({}, edit, { altOn: !edit.altOn }))}>
             <span className="tx"><b>Otro importe algunos meses</b><span>Por ejemplo, más los meses que se cobra el agua</span></span><span className=${'track' + (edit.altOn ? ' on' : '')}><i></i></span></button>
           ${edit.altOn ? html`<${React.Fragment}>
@@ -1215,7 +1252,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
     const go = (s) => { setScreen(s); try { window.scrollTo(0, 0); } catch (e) {} };
 
-    return html`<div className="app" data-mode=${prefs.mode} data-bg=${prefs.bgId} style=${{ '--acc': acc[0], '--accSoft': acc[1] }}>
+    return html`<div className="app" data-mode=${prefs.mode} data-bg=${prefs.bgId} data-hero=${prefs.hero || 'negro'} style=${{ '--acc': acc[0], '--accSoft': acc[1] }}>
       ${screen === 'main' ? mainScreen : screen === 'deudas' ? deudasScreen : screen === 'caprichos' ? caprichosScreen : ajustesScreen}
       <nav className="tabbar" aria-label="Secciones">
         ${tabs.map((tb) => html`<button key=${tb[0]} aria-current=${screen === tb[0] ? 'page' : 'false'} onClick=${() => go(tb[0])}><${Icon}>${tb[2]}<//>${tb[1]}</button>`)}
