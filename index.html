@@ -260,6 +260,19 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .viewlink { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 18px; background: var(--infoBg); color: var(--infoFg); font-size: 13px; font-weight: 700; text-decoration: none; }
 .hero .prev { margin: 0; font-size: 14px; line-height: 1.45; color: #C9CEDA; }
 .hero .prev b { color: #FFFFFF; font-variant-numeric: tabular-nums; }
+.row, .cap { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; position: relative; }
+.row.dragging, .cap.dragging { z-index: 20; background: var(--card); border-radius: 14px; box-shadow: 0 12px 30px rgba(17,19,24,0.22); transition: box-shadow .15s; }
+.row.dragging { border-top-color: transparent; }
+.glasslv button { font-size: 13px !important; }
+.clean { display: flex; flex-direction: column; }
+.clean-row { min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding: 8px 0; }
+.clean-row:first-of-type { border-top: 0; }
+.clean-row .tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.clean-row .tx b { font-size: 15px; font-weight: 600; }
+.clean-row .tx span { font-size: 13px; color: var(--muted); }
+.clean-row button { flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); font-size: 14px; font-weight: 700; color: var(--danger); }
+.clean-row button[disabled] { color: var(--muted); opacity: .6; cursor: default; }
+.clean-row button.sure { background: var(--danger); border-color: var(--danger); color: var(--onSolid); }
 .stepper { display: flex; align-items: center; gap: 14px; }
 .stepper span { min-width: 92px; text-align: center; font-size: 16px; }
 .stepper b { font-family: var(--font-display); font-size: 24px; }
@@ -579,7 +592,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 </script>
 <script>
 (function () {
-  const { useState, useEffect, useRef } = React;
+  const { useState, useEffect, useRef, useLayoutEffect } = React;
   const html = htm.bind(React.createElement);
 
   const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -634,6 +647,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       deudas: Array.isArray(d.deudas) ? d.deudas : [],
       caprichos: Array.isArray(d.caprichos) ? d.caprichos : [],
       periods: Array.isArray(d.periods) && d.periods.length ? d.periods.map((p) => Object.assign({ done: {}, items: [], saldo: '' }, p)) : base.periods,
+      order: d.order && typeof d.order === 'object' ? d.order : {},
       prefs: Object.assign({}, base.prefs, d.prefs || {})
     };
     // Antes, un ingreso marcado ya estaba dentro de "Tengo en la cuenta": se conserva así para no sumarlo dos veces.
@@ -689,10 +703,77 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   const Plus = () => html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>`;
   const Pencil = () => html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg>`;
 
+  // ---------- Ordenar arrastrando (mantener pulsado) ----------
+  let suppressUntil = 0;
+  const guard = (fn) => (e) => { if (Date.now() < suppressUntil) { e && e.preventDefault && e.preventDefault(); return; } fn && fn(e); };
+  const drag = { st: null, setDrag: null, commit: null };
+  function dragMove(e) {
+    const st = drag.st;
+    if (!st) return;
+    st.lastY = e.clientY;
+    if (!st.active) {
+      if (Math.hypot(e.clientX - st.x0, e.clientY - st.y0) > 10) dragEnd(e, true);
+      return;
+    }
+    positionDragged();
+    const others = Array.from(st.row.parentElement.children).filter((el) => el.dataset && el.dataset.id && el !== st.row);
+    const idx = others.filter((el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 < st.lastY; }).length;
+    const ids = others.map((el) => el.dataset.id);
+    ids.splice(idx, 0, st.id);
+    if (ids.join('|') !== st.ids.join('|')) { st.ids = ids; drag.setDrag({ list: st.list, ids }); }
+  }
+  function positionDragged() {
+    const st = drag.st;
+    if (!st || !st.active) return;
+    const natural = st.row.getBoundingClientRect().top - st.ty;
+    st.ty = st.lastY - st.grabDy - natural;
+    st.row.style.transform = 'translateY(' + st.ty + 'px) scale(1.02)';
+  }
+  function dragEnd(e, cancelOnly) {
+    const st = drag.st;
+    if (!st) return;
+    clearTimeout(st.timer);
+    window.removeEventListener('pointermove', dragMove);
+    window.removeEventListener('pointerup', dragEnd);
+    window.removeEventListener('pointercancel', dragEnd);
+    drag.st = null;
+    if (st.active) {
+      st.row.classList.remove('dragging');
+      st.row.style.transform = '';
+      suppressUntil = Date.now() + 450;
+      drag.commit(st.list, st.ids);
+      drag.setDrag(null);
+    }
+  }
+  function dragStart(list, id, ids) {
+    return (e) => {
+      if (e.button) return;
+      if (e.target.closest && e.target.closest('input')) return;
+      if (drag.st) dragEnd(null, true);
+      const row = e.currentTarget;
+      const st = { list, id, ids: ids.slice(), x0: e.clientX, y0: e.clientY, lastY: e.clientY, row, active: false, ty: 0, grabDy: 0 };
+      st.timer = setTimeout(() => {
+        if (drag.st !== st) return;
+        st.active = true;
+        st.grabDy = st.y0 - row.getBoundingClientRect().top;
+        row.classList.add('dragging');
+        try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
+        drag.setDrag({ list, ids: st.ids });
+        positionDragged();
+      }, 380);
+      drag.st = st;
+      window.addEventListener('pointermove', dragMove);
+      window.addEventListener('pointerup', dragEnd);
+      window.addEventListener('pointercancel', dragEnd);
+    };
+  }
+  document.addEventListener('touchmove', (e) => { if (drag.st && drag.st.active) e.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', (e) => { if (drag.st) e.preventDefault(); });
+
   function Row({ r }) {
-    return html`<div className="row">
-      <button className=${'chk' + (r.done ? ' on' : '')} role="checkbox" aria-checked=${r.done ? 'true' : 'false'} aria-label=${r.checkLabel} onClick=${r.toggle}><span className="box">${r.done ? html`<${Check} />` : null}</span></button>
-      <button className="rowmain" onClick=${r.edit} aria-label=${'Editar ' + r.name}>
+    return html`<div className="row" data-id=${r.key} onPointerDown=${r.onDown}>
+      <button className=${'chk' + (r.done ? ' on' : '')} role="checkbox" aria-checked=${r.done ? 'true' : 'false'} aria-label=${r.checkLabel} onClick=${guard(r.toggle)}><span className="box">${r.done ? html`<${Check} />` : null}</span></button>
+      <button className="rowmain" onClick=${guard(r.edit)} aria-label=${'Editar ' + r.name}>
         <span className=${'nm' + (r.done ? ' done' : '')}>${r.name}</span>
         ${r.sub ? html`<span className=${'sb' + (r.done ? ' ok' : '')}>${r.sub}</span>` : null}
       </button>
@@ -710,7 +791,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const [openFijos, setOpenFijos] = useState(true);
     const [openCob, setOpenCob] = useState(false);
     const [openComp, setOpenComp] = useState(false);
-    const [capSort, setCapSort] = useState('imp');
+    const [dragState, setDragState] = useState(null);
+    const [confirmClean, setConfirmClean] = useState(null);
     const [compCat, setCompCat] = useState('capricho');
     const [confirmNext, setConfirmNext] = useState(false);
     const [edit, setEdit] = useState(null);
@@ -719,6 +801,14 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const [drafts, setDrafts] = useState({});
     const [sysDark, setSysDark] = useState(() => { try { return window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) { return false; } });
     const fileRef = useRef(null);
+    drag.setDrag = setDragState;
+    drag.commit = (list, ids) => setData((d) => {
+      const order = Object.assign({}, d.order || {});
+      ids.forEach((id, i) => { order[id] = i; });
+      const prefs2 = list.indexOf('compras') === 0 ? Object.assign({}, d.prefs, { capSort: 'manual' }) : d.prefs;
+      return Object.assign({}, d, { order, prefs: prefs2, savedAt: Date.now() });
+    });
+    useLayoutEffect(() => { positionDragged(); }, [dragState]);
 
     useEffect(() => {
       let mq;
@@ -787,6 +877,16 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
     const change = (fn) => setData((d) => Object.assign(fn(d), { savedAt: Date.now() }));
     const setPrefs = (patch) => change((d) => Object.assign({}, d, { prefs: Object.assign({}, d.prefs, patch) }));
+    const capSort = prefs.capSort || 'imp';
+    const setCapSort = (v) => setPrefs({ capSort: v });
+    const ordMap = data.order || {};
+    const ordered = (list, arr, idOf) => {
+      if (dragState && dragState.list === list) {
+        const pos = {}; dragState.ids.forEach((id, i) => { pos[id] = i; });
+        return arr.slice().sort((a, b) => (pos[idOf(a)] != null ? pos[idOf(a)] : 1e9) - (pos[idOf(b)] != null ? pos[idOf(b)] : 1e9));
+      }
+      return arr.map((x, i) => [x, i]).sort((a, b) => (ordMap[idOf(a[0])] != null ? ordMap[idOf(a[0])] : 1e6 + a[1]) - (ordMap[idOf(b[0])] != null ? ordMap[idOf(b[0])] : 1e6 + b[1])).map((q) => q[0]);
+    };
     const pi = Math.min(piSel == null ? todayIndex(data.periods) : piSel, data.periods.length - 1);
     const setPeriod = (patch) => change((d) => Object.assign({}, d, { periods: d.periods.map((p, i) => (i === pi ? Object.assign({}, p, patch) : p)) }));
     const c = calc(data, pi);
@@ -854,11 +954,14 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       };
     };
     const cobrados = c.entries.filter((e) => p.done[e.src.id]);
+    const eid = (e) => e.src.id;
+    const L = { inc: ordered('inc', c.inc, eid), fij: ordered('fij', c.fij, eid), deu: ordered('deu', c.deu, eid), otr: ordered('otr', c.otr, eid) };
+    const rowsOf = (list) => L[list].map((en) => { const r = mkRow(en); r.onDown = dragStart(list, r.key, L[list].map(eid)); return r; });
     const parts = [S(c.saldo) + '€'];
     c.incIn.forEach((e) => parts.push('+ ' + S(e.amount)));
     if (c.fij.length) parts.push('− ' + S(c.sum(c.fij)));
     if (c.deu.length) parts.push('− ' + S(c.sum(c.deu)));
-    c.otr.forEach((e) => parts.push('− ' + S(e.amount)));
+    ordered('otr', c.otr, (e) => e.src.id).forEach((e) => parts.push('− ' + S(e.amount)));
 
     const nextPeriod = () => {
       if (pi < data.periods.length - 1) { setPiSel(pi + 1); return; }
@@ -998,8 +1101,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       </section>
 
       <div className="sechead"><h2>Pendientes</h2><button className="btn-solid" onClick=${() => openItem('new', null)}><${Plus} />Añadir</button></div>
+      <p className="note" style=${{ margin: '-6px 2px 0' }}>Mantén pulsado un elemento y arrástralo para cambiar su orden.</p>
 
-      ${c.inc.length ? group('Ingresos previstos (aún no suman)', '+' + F(c.sum(c.inc)), true, c.inc.map(mkRow)) : null}
+      ${c.inc.length ? group('Ingresos previstos (aún no suman)', '+' + F(c.sum(c.inc)), true, rowsOf('inc')) : null}
 
       <section className="card group" aria-label="Fijos">
         <button className="toggle" aria-expanded=${openFijos ? 'true' : 'false'} onClick=${() => setOpenFijos(!openFijos)}>
@@ -1007,11 +1111,11 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
           <span className="tx"><b>Fijos</b><span>${c.fij.length + (c.fij.length === 1 ? ' pendiente' : ' pendientes')}</span></span>
           <span className="v">−${F(c.sum(c.fij))}</span>
         </button>
-        ${openFijos ? (c.fij.length ? c.fij.map((en) => { const r = mkRow(en); return html`<${Row} key=${r.key} r=${r} />`; }) : html`<p className="empty">${data.fijos.length ? 'No queda ningún fijo por cobrar este mes.' : 'Añade tus fijos (luz, agua, gimnasio…) con Añadir y elige el grupo “Fijos”.'}</p>`) : null}
+        ${openFijos ? (c.fij.length ? rowsOf('fij').map((r) => html`<${Row} key=${r.key} r=${r} />`) : html`<p className="empty">${data.fijos.length ? 'No queda ningún fijo por cobrar este mes.' : 'Añade tus fijos (luz, agua, gimnasio…) con Añadir y elige el grupo “Fijos”.'}</p>`) : null}
       </section>
 
-      ${c.deu.length ? group('Deudas', '−' + F(c.sum(c.deu)), false, c.deu.map(mkRow)) : null}
-      ${c.otr.length ? group('Puntuales', '−' + F(c.sum(c.otr)), false, c.otr.map(mkRow)) : null}
+      ${c.deu.length ? group('Deudas', '−' + F(c.sum(c.deu)), false, rowsOf('deu')) : null}
+      ${c.otr.length ? group('Puntuales', '−' + F(c.sum(c.otr)), false, rowsOf('otr')) : null}
 
       <section className="group gray" aria-label="Cobrados">
         <button className="toggle" aria-expanded=${openCob ? 'true' : 'false'} onClick=${() => setOpenCob(!openCob)}>
@@ -1065,7 +1169,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const inCat = (x) => (x.cat || 'capricho') === compCat;
     const isCasa = compCat === 'casa';
     const countCat = (cat) => data.caprichos.filter((x) => !x.bought && (x.cat || 'capricho') === cat).length;
-    const capPend = data.caprichos.filter((x) => !x.bought && inCat(x)).slice().sort((a, b) => (capSort === 'imp' ? (b.imp - a.imp) || (whenKey(a) - whenKey(b)) : (whenKey(a) - whenKey(b)) || (b.imp - a.imp)));
+    const capList = 'compras-' + compCat;
+    const capBase = data.caprichos.filter((x) => !x.bought && inCat(x));
+    const capPend = capSort === 'manual' || (dragState && dragState.list === capList) ? ordered(capList, capBase, (x) => x.id) : capBase.slice().sort((a, b) => (capSort === 'imp' ? (b.imp - a.imp) || (whenKey(a) - whenKey(b)) : (whenKey(a) - whenKey(b)) || (b.imp - a.imp)));
     const capBought = data.caprichos.filter((x) => x.bought && inCat(x));
     const linkRe = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
     const toggleBought = (x) => change((d) => Object.assign({}, d, { caprichos: d.caprichos.map((y) => (y.id === x.id ? Object.assign({}, y, { bought: !y.bought }) : y)) }));
@@ -1083,20 +1189,22 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         <div className="dk"><span>${capPend.length + (isCasa ? (capPend.length === 1 ? ' cosa pendiente' : ' cosas pendientes') : (capPend.length === 1 ? ' capricho pendiente' : ' caprichos pendientes'))}</span><b>${F(capPend.reduce((a, x) => a + x.amount, 0))} €</b></div>
         <div className="lt"><span>Libre en ${curLibreMonth}</span><b>${F(curLibre)} €</b></div>
       </div>
-      <div className="segctl on-page" role="group" aria-label="Ordenar" style=${{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        <button aria-pressed=${capSort === 'imp' ? 'true' : 'false'} onClick=${() => setCapSort('imp')}>Por importancia</button>
-        <button aria-pressed=${capSort === 'fecha' ? 'true' : 'false'} onClick=${() => setCapSort('fecha')}>Por fecha</button>
+      <div className="segctl on-page" role="group" aria-label="Ordenar" style=${{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+        <button aria-pressed=${capSort === 'imp' ? 'true' : 'false'} onClick=${() => setCapSort('imp')} style=${{ fontSize: '14px' }}>Importancia</button>
+        <button aria-pressed=${capSort === 'fecha' ? 'true' : 'false'} onClick=${() => setCapSort('fecha')} style=${{ fontSize: '14px' }}>Fecha</button>
+        <button aria-pressed=${capSort === 'manual' ? 'true' : 'false'} onClick=${() => setCapSort('manual')} style=${{ fontSize: '14px' }}>Mi orden</button>
       </div>
+      ${capPend.length > 1 ? html`<p className="note" style=${{ margin: '-4px 2px 0' }}>Mantén pulsado un elemento y arrástralo para cambiar el orden.</p>` : null}
       ${capPend.length ? capPend.map((x) => {
         const isLink = linkRe.test(x.where || '');
         let when = 'Sin fecha';
         if (x.date) { const d = pd(x.date); when = d.getDate() + ' ' + miShort(miOf(d), CURY); }
         else if (x.mi != null) when = cap(miName(x.mi, CURY));
         const ii = IMP[x.imp] || IMP[2];
-        return html`<article className="card cap" key=${x.id}>
+        return html`<article className="card cap" key=${x.id} data-id=${x.id} onPointerDown=${dragStart(capList, x.id, capPend.map((y) => y.id))}>
           <div style=${{ display: 'flex', alignItems: 'flex-start' }}>
-            <button className="chk" role="checkbox" aria-checked="false" aria-label=${'Marcar como comprado: ' + x.name} onClick=${() => toggleBought(x)}><span className="box"></span></button>
-            <button className="main" onClick=${() => openCap(x)} aria-label=${'Editar ' + x.name}>
+            <button className="chk" role="checkbox" aria-checked="false" aria-label=${'Marcar como comprado: ' + x.name} onClick=${guard(() => toggleBought(x))}><span className="box"></span></button>
+            <button className="main" onClick=${guard(() => openCap(x))} aria-label=${'Editar ' + x.name}>
               <span className="l1"><b>${x.name}</b><span className="p">${F(x.amount)} €</span></span>
               <span className="pills"><span className=${'pill ' + ii[1]}>${ii[0]}</span><span className="pill"><${Icon} size="13"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M4 10h16M9 3v4M15 3v4"></path><//>${when}</span></span>
             </button>
@@ -1122,6 +1230,21 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     // Ajustes
     const toggleRow = (on, onClick, title, sub) => html`<button className="sw-row" role="switch" aria-checked=${on ? 'true' : 'false'} onClick=${onClick}>
       <span className="tx"><b>${title}</b><span>${sub}</span></span><span className=${'track' + (on ? ' on' : '')}><i></i></span></button>`;
+    const pastN = todayIndex(data.periods);
+    const boughtN = data.caprichos.filter((x) => x.bought).length;
+    const debtDoneN = data.deudas.filter((d) => nAt(d, CURMI) > d.total).length;
+    const puntDoneN = data.fijos.filter((f) => f.end != null && f.end < CURMI).length;
+    const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+    const cleanRows = [
+      { key: 'meses', title: 'Meses pasados', sub: pastN ? plural(pastN, 'mes anterior', 'meses anteriores') + ' a ' + MONTHS[data.periods[pastN].mi % 12] : 'No hay meses pasados', count: pastN,
+        run: () => { change((d) => Object.assign({}, d, { periods: d.periods.slice(todayIndex(d.periods)) })); setPiSel(null); }, done: 'Meses pasados borrados.' },
+      { key: 'comprados', title: 'Compras ya hechas', sub: boughtN ? plural(boughtN, 'elemento comprado', 'elementos comprados') : 'No hay nada comprado', count: boughtN,
+        run: () => change((d) => Object.assign({}, d, { caprichos: d.caprichos.filter((x) => !x.bought) })), done: 'Compras hechas borradas.' },
+      { key: 'deudas', title: 'Deudas terminadas', sub: debtDoneN ? plural(debtDoneN, 'deuda pagada', 'deudas pagadas') : 'Ninguna terminada', count: debtDoneN,
+        run: () => change((d) => Object.assign({}, d, { deudas: d.deudas.filter((x) => nAt(x, CURMI) <= x.total) })), done: 'Deudas terminadas borradas.' },
+      { key: 'puntuales', title: 'Puntuales ya terminados', sub: puntDoneN ? plural(puntDoneN, 'gasto de varios meses acabado', 'gastos de varios meses acabados') : 'Ninguno terminado', count: puntDoneN,
+        run: () => change((d) => Object.assign({}, d, { fijos: d.fijos.filter((f) => !(f.end != null && f.end < CURMI)) })), done: 'Puntuales terminados borrados.' }
+    ];
     const ajustesScreen = html`<div className="wrap" key="ajustes">
       <header><span className="eyebrow">A tu gusto</span><h1 className="h1">Ajustes</h1></header>
       <section className="card settings" aria-label="Apariencia">
@@ -1149,6 +1272,24 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         </div>
       </section>
       <button className="btn-line" onClick=${() => setPrefs({ mode: 'system', bgId: 'neutro', hero: 'negro', accent: '#2F4BFF', showFormula: true, hide: false })}>Restablecer apariencia</button>
+      <section className="card settings" aria-label="Barra inferior">
+        <h2>Barra inferior</h2>
+        <div className="fgroup" role="group" aria-label="Transparencia de la barra"><span className="lb">Transparencia</span>
+          <div className="segctl glasslv" style=${{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+            ${[[1, 'Opaca'], [2, 'Media'], [3, 'Alta'], [4, 'Máxima']].map((g) => html`<button key=${g[0]} aria-pressed=${(prefs.glass || 2) === g[0] ? 'true' : 'false'} onClick=${() => setPrefs({ glass: g[0] })}>${g[1]}</button>`)}
+          </div>
+          <span className="note">Cuanto más transparente, más se ve lo que pasa por detrás de la barra.</span></div>
+      </section>
+      <section className="card settings2" aria-label="Limpiar">
+        <h2>Limpiar</h2>
+        <p className="note" style=${{ padding: '2px 0 6px' }}>Antes de borrar, haz una copia por si acaso. Toca dos veces para confirmar.</p>
+        <div className="clean">
+          ${cleanRows.map((cr) => html`<div className="clean-row" key=${cr.key}>
+            <span className="tx"><b>${cr.title}</b><span>${cr.sub}</span></span>
+            <button disabled=${cr.count === 0} className=${confirmClean === cr.key ? 'sure' : ''} onClick=${() => { if (confirmClean === cr.key) { cr.run(); setConfirmClean(null); setBackupMsg(cr.done); } else setConfirmClean(cr.key); }}>${confirmClean === cr.key ? '¿Seguro? Borrar' : 'Borrar'}</button>
+          </div>`)}
+        </div>
+      </section>
       <section className="card settings2" aria-label="Tus datos">
         <h2>Tus datos</h2>
         <p className="note" style=${{ padding: '4px 0 6px' }}>Se guardan solo en este iPhone, no en internet. Haz una copia de vez en cuando y guárdala en Archivos o iCloud: si cambias de móvil o borras la app, con ella lo recuperas todo.</p>
@@ -1252,7 +1393,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
     const go = (s) => { setScreen(s); try { window.scrollTo(0, 0); } catch (e) {} };
 
-    return html`<div className="app" data-mode=${prefs.mode} data-bg=${prefs.bgId} data-hero=${prefs.hero || 'negro'} style=${{ '--acc': acc[0], '--accSoft': acc[1] }}>
+    return html`<div className="app" data-mode=${prefs.mode} data-bg=${prefs.bgId} data-hero=${prefs.hero || 'negro'} style=${{ '--acc': acc[0], '--accSoft': acc[1], '--glass': (dark ? 'rgba(40,44,56,' : 'rgba(255,255,255,') + ({ 1: 0.94, 2: 0.6, 3: 0.36, 4: 0.14 }[prefs.glass || 2]) + ')' }}>
       ${screen === 'main' ? mainScreen : screen === 'deudas' ? deudasScreen : screen === 'caprichos' ? caprichosScreen : ajustesScreen}
       <nav className="tabbar" aria-label="Secciones">
         ${tabs.map((tb) => html`<button key=${tb[0]} aria-current=${screen === tb[0] ? 'page' : 'false'} onClick=${() => go(tb[0])}><${Icon}>${tb[2]}<//>${tb[1]}</button>`)}
