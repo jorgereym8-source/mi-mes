@@ -1222,12 +1222,10 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
               <div className="pills">
                 <span className=${'pill ' + ii[1]}>${ii[0]}</span>
                 ${hasWhen ? html`<span className="pill"><${Icon} size="13"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M4 10h16M9 3v4M15 3v4"></path><//>${when}</span>` : null}
-                ${x.where || x.link ? html`<span className="placegrp">
+                ${x.link ? html`<a className="linkbtn" href=${href(x.link)} target="_blank" rel="noopener" aria-label=${'Ver producto: ' + x.name}><${Icon} size="15"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><//></a>` : null}
                 ${x.where ? (isLink
                   ? html`<a className="pill place" href=${href(x.where)} target="_blank" rel="noopener"><${Icon} size="13"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><//><span className="t">${x.where.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0]}</span></a>`
                   : html`<span className="pill place"><${Icon} size="13"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><//><span className="t">${x.where}</span></span>`) : null}
-                ${x.link ? html`<a className="linkbtn" href=${href(x.link)} target="_blank" rel="noopener" aria-label=${'Ver producto: ' + x.name}><${Icon} size="15"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><//></a>` : null}
-                </span>` : null}
               </div>
             </div>
           </div>
