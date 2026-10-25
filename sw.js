@@ -1,6 +1,6 @@
 // Mi mes: guarda la app para que abra sin conexión.
 // Siempre intenta la versión más nueva y, si no hay internet, usa la guardada.
-const CACHE = 'mi-mes-v7';
+const CACHE = 'mi-mes-v8';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {

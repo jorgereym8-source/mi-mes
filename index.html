@@ -182,13 +182,22 @@ body { background: var(--page); font-family: var(--font-body); -webkit-tap-highl
 .segctl.on-page { background: var(--group); }
 .segctl button { min-height: 40px; border: 0; border-radius: 11px; font-size: 15px; font-weight: 700; background: transparent; color: var(--muted); }
 .segctl button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(17,19,24,0.12); }
-.cap { padding: 6px 14px 12px 4px; display: flex; flex-direction: column; gap: 4px; }
-.cap .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; border: 0; background: transparent; padding: 12px 0 0; text-align: left; }
+.cap { padding: 2px 12px 10px 4px; display: flex; flex-direction: column; }
+.caprow { display: flex; align-items: flex-start; }
+.capbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 13px; }
+.cap .main { width: 100%; display: block; border: 0; background: transparent; padding: 0; text-align: left; }
 .cap .l1 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .cap .l1 b { font-size: 16px; }
 .cap .l1 .p { font-family: var(--font-display); font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--card2); color: var(--muted2); }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; min-height: 26px; padding: 0 9px; box-sizing: border-box; border-radius: 999px; background: var(--card2); color: var(--muted2); max-width: 100%; min-width: 0; text-decoration: none; }
+.pill svg { flex-shrink: 0; }
+.pill.place .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+a.pill.place { color: var(--infoFg); }
+.placegrp { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
+.placegrp .pill.place { flex: 0 1 auto; }
+.linkbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 26px; border-radius: 13px; background: var(--infoBg); color: var(--infoFg); flex-shrink: 0; }
+.linkbtn::after { content: ''; position: absolute; inset: -9px -6px; }
 .pill.hi { background: var(--hiBg); color: var(--hiFg); }
 .pill.md { background: var(--infoBg); color: var(--infoFg); }
 .where { padding-left: 48px; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted2); font-weight: 600; }
@@ -1201,17 +1210,27 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         if (x.date) { const d = pd(x.date); when = d.getDate() + ' ' + miShort(miOf(d), CURY); }
         else if (x.mi != null) when = cap(miName(x.mi, CURY));
         const ii = IMP[x.imp] || IMP[2];
+        const hasWhen = !!x.date || x.mi != null;
+        const href = (u) => (/^https?:\/\//i.test(u) ? u : 'https://' + u);
         return html`<article className="card cap" key=${x.id} data-id=${x.id} onPointerDown=${dragStart(capList, x.id, capPend.map((y) => y.id))}>
-          <div style=${{ display: 'flex', alignItems: 'flex-start' }}>
+          <div className="caprow">
             <button className="chk" role="checkbox" aria-checked="false" aria-label=${'Marcar como comprado: ' + x.name} onClick=${guard(() => toggleBought(x))}><span className="box"></span></button>
-            <button className="main" onClick=${guard(() => openCap(x))} aria-label=${'Editar ' + x.name}>
-              <span className="l1"><b>${x.name}</b><span className="p">${F(x.amount)} €</span></span>
-              <span className="pills"><span className=${'pill ' + ii[1]}>${ii[0]}</span><span className="pill"><${Icon} size="13"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M4 10h16M9 3v4M15 3v4"></path><//>${when}</span></span>
-            </button>
+            <div className="capbody">
+              <button className="main" onClick=${guard(() => openCap(x))} aria-label=${'Editar ' + x.name}>
+                <span className="l1"><b>${x.name}</b><span className="p">${F(x.amount)} €</span></span>
+              </button>
+              <div className="pills">
+                <span className=${'pill ' + ii[1]}>${ii[0]}</span>
+                ${hasWhen ? html`<span className="pill"><${Icon} size="13"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M4 10h16M9 3v4M15 3v4"></path><//>${when}</span>` : null}
+                ${x.where || x.link ? html`<span className="placegrp">
+                ${x.where ? (isLink
+                  ? html`<a className="pill place" href=${href(x.where)} target="_blank" rel="noopener"><${Icon} size="13"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><//><span className="t">${x.where.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0]}</span></a>`
+                  : html`<span className="pill place"><${Icon} size="13"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><//><span className="t">${x.where}</span></span>`) : null}
+                ${x.link ? html`<a className="linkbtn" href=${href(x.link)} target="_blank" rel="noopener" aria-label=${'Ver producto: ' + x.name}><${Icon} size="15"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><//></a>` : null}
+                </span>` : null}
+              </div>
+            </div>
           </div>
-          ${x.where ? html`<div className="where"><${Icon} size="15"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><//>
-            ${isLink ? html`<a href=${/^https?:\/\//i.test(x.where) ? x.where : 'https://' + x.where} target="_blank" rel="noopener">${x.where.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0]}</a>` : html`<span>${x.where}</span>`}</div>` : null}
-          ${x.link ? html`<div style=${{ paddingLeft: '48px', paddingTop: '4px' }}><a className="viewlink" href=${/^https?:\/\//i.test(x.link) ? x.link : 'https://' + x.link} target="_blank" rel="noopener"><${Icon} size="15"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path><//>Ver producto</a></div>` : null}
         </article>`;
       }) : html`<p className="card" style=${{ margin: 0, padding: '18px', color: 'var(--muted)' }}>${isCasa ? 'Nada pendiente para casa. Apunta aquí lo que haga falta comprar.' : 'Nada pendiente. Apunta aquí lo próximo que te apetezca comprar.'}</p>`}
       <section className="group gray" aria-label="Comprados">
