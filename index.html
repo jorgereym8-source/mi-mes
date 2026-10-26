@@ -620,6 +620,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   const LS_KEY = 'mi-mes-v1';
 
   const num = (s) => { let t = String(s == null ? '' : s).replace(/[€\s]/g, ''); if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.'); const v = parseFloat(t); return isFinite(v) ? v : 0; };
+  const rsS = (n) => (n < -0.004 ? '-' : '') + rs(Math.round(n * 100) / 100);
   const rs = (n) => { const a = Math.abs(n); return Math.abs(a - Math.round(a)) < 0.005 ? String(Math.round(a)) : a.toFixed(2).replace('.', ','); };
   const fmt = (n) => { const neg = n < -0.004; const p = Math.abs(n).toFixed(2).split('.'); return (neg ? '−' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + p[1]; };
   const pd = (s) => { const p = String(s || '').split('-'); return new Date(+p[0] || 2000, (+p[1] || 1) - 1, +p[2] || 1); };
@@ -911,10 +912,25 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     else if (cobD <= t0) status2 = 'Ya cobraste';
     const perDay = days > 0 ? c.total / days : 0;
 
-    const toggleDone = (id) => {
+    // Marcar un gasto lo resta de "Tengo en la cuenta"; marcar un ingreso lo suma.
+    // Al desmarcarlo se deshace. Las marcas antiguas (true / 'saldo') no tocan la cuenta.
+    const toggleDone = (en) => {
+      const id = en.src.id;
       const done = Object.assign({}, p.done);
-      if (done[id]) delete done[id]; else done[id] = true;
-      setPeriod({ done });
+      const cur = done[id];
+      let saldo = num(p.saldo);
+      if (cur) {
+        if (cur && typeof cur === 'object' && typeof cur.s === 'number') saldo -= cur.s;
+        delete done[id];
+      } else {
+        const sAmt = Math.round(en.sign * en.amount * 100) / 100;
+        done[id] = { s: sAmt };
+        saldo += sAmt;
+      }
+      const patch = { done };
+      if (!(cur && typeof cur !== 'object')) patch.saldo = rsS(saldo);
+      setPeriod(patch);
+      setDrafts({});
     };
     const setAmount = (kind, id, value, useAlt) => {
       setDrafts((o) => Object.assign({}, o, { [id]: value }));
@@ -945,8 +961,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       if (en.kind === 'item' && groupOf(en) === 'fijos') parts.push('Solo este mes');
       const dv = p.done[x.id];
       let sub;
+      const applied = dv && typeof dv === 'object';
       if (done && inc) sub = dv === 'saldo' ? 'Recibido · ya estaba en la cuenta' : 'Recibido · sumado a la cuenta';
-      else if (done) sub = 'Cobrado' + (parts.length ? ' · ' + parts.join(' · ') : '');
+      else if (done) sub = (applied ? 'Pagado · restado de la cuenta' : 'Cobrado') + (parts.length ? ' · ' + parts.join(' · ') : '');
       else if (inc) sub = 'Previsto · márcalo al cobrarlo' + (parts.length ? ' · ' + parts.join(' · ') : '');
       else sub = parts.join(' · ');
       const editable = !done && en.kind !== 'deuda' && !hide;
@@ -958,7 +975,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         setAmount: (e) => setAmount(en.kind, x.id, e.target.value, !!en.altOn),
         blur: () => setDrafts((o) => { const n = Object.assign({}, o); delete n[x.id]; return n; }),
         checkLabel: (inc ? 'Marcar como recibido: ' : 'Marcar como cobrado: ') + x.name,
-        toggle: () => toggleDone(x.id),
+        toggle: () => toggleDone(en),
         edit: () => (en.kind === 'deuda' ? openDeuda(x) : openItem(en.kind, x))
       };
     };
@@ -1103,7 +1120,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
           <label className="t" htmlFor="saldo">Tengo en la cuenta</label>
           <div className="field"><input id="saldo" inputMode="decimal" placeholder="0" value=${hide ? '' : p.saldo} disabled=${hide} onChange=${(e) => setPeriod({ saldo: e.target.value })} /><span>€</span></div>
           ${p.carry ? html`<span className="note" style=${{ color: 'var(--pos)', fontWeight: 600 }}>Empezaste con ${F(p.carry.amount)} € que te sobraron de ${MONTHS[p.carry.mi % 12]}.</span>` : null}
-          <span className="note">Después de un gasto, escribe aquí lo que te queda.</span>
+          <span className="note">Al marcar un gasto se resta solo de aquí. Si no cuadra con tu banco, escribe la cifra real.</span>
         </div>
         <div className="cob"><label htmlFor="cobro" style=${{ fontWeight: 600 }}>Vuelvo a cobrar el</label>
           <input id="cobro" className="date" type="date" value=${p.cobro} onChange=${(e) => e.target.value && setPeriod({ cobro: e.target.value })} /></div>
@@ -1183,7 +1200,23 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const capPend = capSort === 'manual' || (dragState && dragState.list === capList) ? ordered(capList, capBase, (x) => x.id) : capBase.slice().sort((a, b) => (capSort === 'imp' ? (b.imp - a.imp) || (whenKey(a) - whenKey(b)) : (whenKey(a) - whenKey(b)) || (b.imp - a.imp)));
     const capBought = data.caprichos.filter((x) => x.bought && inCat(x));
     const linkRe = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
-    const toggleBought = (x) => change((d) => Object.assign({}, d, { caprichos: d.caprichos.map((y) => (y.id === x.id ? Object.assign({}, y, { bought: !y.bought }) : y)) }));
+    const toggleBought = (x) => change((d) => {
+      const per = d.periods.slice();
+      let item;
+      if (!x.bought) {
+        const ai = todayIndex(per);
+        const amt = Math.round(x.amount * 100) / 100;
+        per[ai] = Object.assign({}, per[ai], { saldo: rsS(num(per[ai].saldo) - amt) });
+        item = Object.assign({}, x, { bought: true, paid: { mi: per[ai].mi, amount: amt } });
+      } else {
+        if (x.paid) {
+          const bi = per.findIndex((q) => q.mi === x.paid.mi);
+          if (bi >= 0) per[bi] = Object.assign({}, per[bi], { saldo: rsS(num(per[bi].saldo) + x.paid.amount) });
+        }
+        item = Object.assign({}, x, { bought: false, paid: null });
+      }
+      return Object.assign({}, d, { periods: per, caprichos: d.caprichos.map((y) => (y.id === x.id ? item : y)) });
+    });
     const actPi = todayIndex(data.periods);
     const curLibre = calc(data, actPi).total;
     const curLibreMonth = MONTHS[data.periods[actPi].mi % 12];
@@ -1238,7 +1271,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         </button>
         ${openComp ? (capBought.length ? capBought.map((x) => html`<div className="row" key=${x.id}>
             <button className="chk on" role="checkbox" aria-checked="true" aria-label=${'Desmarcar ' + x.name} onClick=${() => toggleBought(x)}><span className="box"><${Check} /></span></button>
-            <button className="rowmain" onClick=${() => openCap(x)} aria-label=${'Editar ' + x.name}><span className="nm done">${x.name}</span><span className="sb ok">Comprado</span></button>
+            <button className="rowmain" onClick=${() => openCap(x)} aria-label=${'Editar ' + x.name}><span className="nm done">${x.name}</span><span className="sb ok">${x.paid ? 'Comprado · restado de la cuenta de ' + MONTHS[x.paid.mi % 12] : 'Comprado'}</span></button>
             <span className="amtt done">${F(x.amount)} €</span>
           </div>`) : html`<p className="empty">Todavía nada.</p>`) : null}
       </section>
