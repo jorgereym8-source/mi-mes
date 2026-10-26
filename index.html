@@ -911,21 +911,10 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     else if (cobD <= t0) status2 = 'Ya cobraste';
     const perDay = days > 0 ? c.total / days : 0;
 
-    const toggleDone = (en) => {
-      const id = en.src.id;
+    const toggleDone = (id) => {
       const done = Object.assign({}, p.done);
-      const isMarking = !done[id];
-      let nuevoSaldo = num(p.saldo);
-
-      if (isMarking) {
-        done[id] = true;
-        nuevoSaldo += (en.sign < 0 ? -en.amount : en.amount);
-      } else {
-        delete done[id];
-        nuevoSaldo -= (en.sign < 0 ? -en.amount : en.amount);
-      }
-
-      setPeriod({ done, saldo: rs(nuevoSaldo) });
+      if (done[id]) delete done[id]; else done[id] = true;
+      setPeriod({ done });
     };
     const setAmount = (kind, id, value, useAlt) => {
       setDrafts((o) => Object.assign({}, o, { [id]: value }));
@@ -969,7 +958,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         setAmount: (e) => setAmount(en.kind, x.id, e.target.value, !!en.altOn),
         blur: () => setDrafts((o) => { const n = Object.assign({}, o); delete n[x.id]; return n; }),
         checkLabel: (inc ? 'Marcar como recibido: ' : 'Marcar como cobrado: ') + x.name,
-        toggle: () => toggleDone(en),
+        toggle: () => toggleDone(x.id),
         edit: () => (en.kind === 'deuda' ? openDeuda(x) : openItem(en.kind, x))
       };
     };
@@ -1194,24 +1183,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const capPend = capSort === 'manual' || (dragState && dragState.list === capList) ? ordered(capList, capBase, (x) => x.id) : capBase.slice().sort((a, b) => (capSort === 'imp' ? (b.imp - a.imp) || (whenKey(a) - whenKey(b)) : (whenKey(a) - whenKey(b)) || (b.imp - a.imp)));
     const capBought = data.caprichos.filter((x) => x.bought && inCat(x));
     const linkRe = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
-    const toggleBought = (x) => {
-      change((d) => {
-        const actPi = todayIndex(d.periods);
-        const per = d.periods[actPi];
-        let nuevoSaldo = num(per.saldo);
-
-        if (!x.bought) {
-          nuevoSaldo -= num(x.amount);
-        } else {
-          nuevoSaldo += num(x.amount);
-        }
-
-        const periods = d.periods.map((q, i) => i === actPi ? Object.assign({}, q, { saldo: rs(nuevoSaldo) }) : q);
-        const caprichos = d.caprichos.map((y) => (y.id === x.id ? Object.assign({}, y, { bought: !y.bought }) : y));
-
-        return Object.assign({}, d, { caprichos, periods });
-      });
-    };
+    const toggleBought = (x) => change((d) => Object.assign({}, d, { caprichos: d.caprichos.map((y) => (y.id === x.id ? Object.assign({}, y, { bought: !y.bought }) : y)) }));
     const actPi = todayIndex(data.periods);
     const curLibre = calc(data, actPi).total;
     const curLibreMonth = MONTHS[data.periods[actPi].mi % 12];
