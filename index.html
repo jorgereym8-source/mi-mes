@@ -290,6 +290,19 @@ a.pill.place { color: var(--infoFg); }
 .herochip[aria-pressed="true"] { border: 2px solid var(--ink); }
 .herochip .sw { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
 .tagm { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--hiBg); color: var(--hiFg); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; vertical-align: 2px; text-decoration: none; }
+.cardtop { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 36px; }
+.roundbtn { position: relative; width: 36px; height: 36px; flex-shrink: 0; border-radius: 18px; border: 1px solid var(--border); background: var(--card2); color: var(--ink); display: flex; align-items: center; justify-content: center; padding: 0; transition: transform .2s, background-color .2s; }
+.roundbtn::after { content: ''; position: absolute; inset: -5px; }
+.roundbtn.onhero { border: 0; background: rgba(255,255,255,0.14); color: #FFFFFF; }
+.roundbtn.open { background: var(--acc); color: #FFFFFF; border-color: var(--acc); }
+.heropanel { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.08); }
+.heropanel b { font-size: 15px; }
+.heropanel p { margin: 0; font-size: 13px; line-height: 1.45; color: #C9CEDA; }
+.heropanel .backup { padding: 2px 0 0; }
+.hp-cancel, .hp-go { min-height: 44px; border-radius: 14px; font-size: 14px; font-weight: 700; border: 0; }
+.hp-cancel { background: rgba(255,255,255,0.12); color: #FFFFFF; }
+.hp-go { background: #FFFFFF; color: #111318; }
+.carrynote { color: var(--pos) !important; font-weight: 600; }
 .okmsg { font-size: 13px; font-weight: 600; color: var(--pos); padding-bottom: 10px; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); font-size: 15px; }
 </style>
@@ -704,8 +717,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const otr = pend.filter((e) => e.sign < 0 && e.kind !== 'deuda' && groupOf(e) === 'puntuales');
     const saldo = num(p.saldo);
     const moved = entries.filter((e) => { const v = p.done[e.src.id]; return v && typeof v === 'object' && v.c != null; });
-    const total = saldo + sum(incIn) - sum(fij) - sum(deu) - sum(otr) - sum(moved);
-    return { p, entries, inc, incIn, fij, deu, otr, moved, saldo, sum, total, previsto: total + sum(inc) };
+    const movedNet = moved.reduce((a, e) => a + e.sign * e.amount, 0);
+    const total = saldo + sum(incIn) + sum(inc) - sum(fij) - sum(deu) - sum(otr) + movedNet;
+    return { p, entries, inc, incIn, fij, deu, otr, moved, movedNet, saldo, sum, total };
   }
   function groupOf(e) { return e.src.group || (e.kind === 'fijo' ? 'fijos' : 'puntuales'); }
 
@@ -807,6 +821,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const [confirmClean, setConfirmClean] = useState(null);
     const [compCat, setCompCat] = useState('capricho');
     const [confirmNext, setConfirmNext] = useState(false);
+    const [showCarry, setShowCarry] = useState(false);
     const [edit, setEdit] = useState(null);
     const [dEdit, setDEdit] = useState(null);
     const [cEdit, setCEdit] = useState(null);
@@ -968,7 +983,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       if (done && inc) sub = dv === 'saldo' ? 'Recibido · ya estaba en la cuenta' : 'Recibido · sumado a la cuenta';
       else if (done && applied && dv.c != null) sub = 'Pasado sin pagar a ' + MONTHS[dv.c % 12];
       else if (done) sub = (applied ? 'Pagado · restado de la cuenta' : 'Cobrado') + (parts.length ? ' · ' + parts.join(' · ') : '');
-      else if (inc) sub = 'Previsto · márcalo al cobrarlo' + (parts.length ? ' · ' + parts.join(' · ') : '');
+      else if (inc) sub = 'Por cobrar · márcalo al recibirlo' + (parts.length ? ' · ' + parts.join(' · ') : '');
       else sub = parts.join(' · ');
       const editable = !done && en.kind !== 'deuda' && !hide;
       return {
@@ -989,10 +1004,11 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const rowsOf = (list) => L[list].map((en) => { const r = mkRow(en); r.onDown = dragStart(list, r.key, L[list].map(eid)); return r; });
     const parts = [S(c.saldo) + '€'];
     c.incIn.forEach((e) => parts.push('+ ' + S(e.amount)));
+    ordered('inc', c.inc, (e) => e.src.id).forEach((e) => parts.push('+ ' + S(e.amount)));
     if (c.fij.length) parts.push('− ' + S(c.sum(c.fij)));
     if (c.deu.length) parts.push('− ' + S(c.sum(c.deu)));
     ordered('otr', c.otr, (e) => e.src.id).forEach((e) => parts.push('− ' + S(e.amount)));
-    if (c.moved.length) parts.push('− ' + S(c.sum(c.moved)) + ' (pasado a ' + SHORT[(p.mi + 1) % 12] + ')');
+    if (c.moved.length) parts.push((c.movedNet < 0 ? '− ' : '+ ') + S(Math.abs(c.movedNet)) + ' (pasado a ' + SHORT[(p.mi + 1) % 12] + ')');
 
     const nextPeriod = () => {
       if (pi < data.periods.length - 1) { setPiSel(pi + 1); return; }
@@ -1066,10 +1082,14 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
     const nextName = MONTHS[(p.mi + 1) % 12];
     const nextSaldo = pi < data.periods.length - 1 ? String(data.periods[pi + 1].saldo || '').trim() : '';
-    const carryList = c.fij.concat(c.deu, c.otr);
-    const carrySum = c.sum(carryList);
+    const carryExp = c.fij.concat(c.deu, c.otr);
+    const carryList = c.inc.concat(carryExp);
+    const carrySum = c.sum(carryExp);
+    const carryIncSum = c.sum(c.inc);
     const octText = 'Lo que te queda libre en ' + MONTHS[p.mi % 12] + ' (' + F(c.total) + ' €) pasa a ' + nextName +
-      (carryList.length ? ', junto con lo que te falta por pagar (' + carryList.length + (carryList.length === 1 ? ' pago, ' : ' pagos, ') + F(carrySum) + ' €), que aparecerá marcado con “' + SHORT[p.mi % 12] + '”' : '') +
+      (carryExp.length ? ', junto con lo que te falta por pagar (' + carryExp.length + (carryExp.length === 1 ? ' pago, ' : ' pagos, ') + F(carrySum) + ' €)' : '') +
+      (c.inc.length ? (carryExp.length ? ' y' : ', junto con') + ' lo que te falta por cobrar (' + F(carryIncSum) + ' €)' : '') +
+      (carryList.length ? ', que aparecerá marcado con “' + SHORT[p.mi % 12] + '”' : '') +
       '. ' + cap(MONTHS[p.mi % 12]) + ' se cierra hoy.' +
       (nextSaldo ? ' Sustituye los ' + F(num(nextSaldo)) + ' € que tenías puestos en “Tengo en la cuenta” de ' + nextName + '.' : '');
     const passToNext = () => {
@@ -1077,9 +1097,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       // Lo pendiente pasa al mes siguiente: la cuenta lleva el dinero sin descontarlo, y se descuenta allí.
       const toCarry = carryList.map((en) => ({
         id: uid() + en.src.id.slice(-3), name: en.kind === 'deuda' ? en.src.name + ' (cuota ' + en.n + ')' : en.src.name,
-        amount: en.amount, sign: -1, approx: !!en.src.approx, group: en.kind === 'deuda' ? 'puntuales' : groupOf(en), from: p.mi
+        amount: en.amount, sign: en.sign, approx: !!en.src.approx, group: en.sign > 0 ? undefined : (en.kind === 'deuda' ? 'puntuales' : groupOf(en)), from: p.mi
       }));
-      const startSaldo = Math.round((left + carrySum) * 100) / 100;
+      const startSaldo = Math.round((left - carryIncSum + carrySum) * 100) / 100;
       const oldCob = pd(p.cobro);
       change((d) => {
         const closedDone = Object.assign({}, d.periods[pi].done);
@@ -1091,13 +1111,20 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
           const nd = new Date(base.getFullYear(), base.getMonth() + 1, Math.min(want, new Date(base.getFullYear(), base.getMonth() + 2, 0).getDate()));
           periods = periods.concat([{ mi: p.mi + 1, saldo: '', cobro: iso(nd), done: {}, items: [] }]);
         }
-        periods = periods.map((q, i) => (i === pi + 1 ? Object.assign({}, q, { saldo: rsS(startSaldo), items: toCarry.concat(q.items || []), carry: { amount: left, mi: p.mi, n: toCarry.length, debt: carrySum } }) : q));
+        periods = periods.map((q, i) => (i === pi + 1 ? Object.assign({}, q, { saldo: rsS(startSaldo), items: toCarry.concat(q.items || []), carry: { amount: left, mi: p.mi, n: carryExp.length, debt: carrySum, ni: c.inc.length, cred: carryIncSum } }) : q));
         return Object.assign({}, d, { periods });
       });
       setConfirmNext(false);
       setPiSel(pi + 1);
       setDrafts({});
     };
+    const carryText = (() => {
+      if (!p.carry) return '';
+      const bits = [F(p.carry.amount) + ' € libres de ' + MONTHS[p.carry.mi % 12]];
+      if (p.carry.n) bits.push(p.carry.n + (p.carry.n === 1 ? ' pago pendiente' : ' pagos pendientes') + ' (' + F(p.carry.debt) + ' €)');
+      if (p.carry.ni) bits.push(p.carry.ni + (p.carry.ni === 1 ? ' cobro pendiente' : ' cobros pendientes') + ' (' + F(p.carry.cred) + ' €)');
+      return 'Empezaste con ' + (bits.length > 1 ? bits.slice(0, -1).join(', ') + ' y ' + bits[bits.length - 1] : bits[0]) + '.';
+    })();
     const isEmpty = !data.fijos.length && !data.deudas.length && !data.caprichos.length && data.periods.every((q) => !String(q.saldo || '').trim() && !q.items.length);
     const mainScreen = html`<div className="wrap" key="main">
       ${isEmpty ? html`<section className="card start" aria-label="Empezar">
@@ -1112,32 +1139,31 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
         <button className="btn-round" aria-label="Mes siguiente" onClick=${nextPeriod}><${Icon} size="20"><path d="M9 6l6 6-6 6"></path><//></button>
       </header>
 
-      ${status2 === 'Ahora' && !confirmNext ? html`<button className="btn-next" onClick=${() => setConfirmNext(true)}>
-        <${Icon} size="20"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path><//>Ya he cobrado · pasar a ${nextName}</button>` : null}
-      ${status2 === 'Ahora' && confirmNext ? html`<section className="card confirm" aria-label=${'Pasar a ' + nextName}>
-        <b>¿Empezar ${nextName}?</b>
-        <p>${octText}</p>
-        <div className="backup">
-          <button className="btn-line" onClick=${() => setConfirmNext(false)}>Cancelar</button>
-          <button className="btn-solid" style=${{ justifyContent: 'center', minHeight: '48px', borderRadius: '16px', fontSize: '15px' }} onClick=${passToNext}>Pasar a ${nextName}</button>
-        </div>
-      </section>` : null}
-
       <section className="hero" aria-label="Lo que puedo gastar">
-        <span className="lbl">Libre hasta que vuelva a cobrar</span>
+        <div className="cardtop"><span className="lbl">Libre hasta que vuelva a cobrar</span>
+          ${status2 === 'Ahora' ? html`<button className=${'roundbtn onhero' + (confirmNext ? ' open' : '')} aria-expanded=${confirmNext ? 'true' : 'false'} aria-label=${'Ya he cobrado: pasar a ' + nextName} onClick=${() => setConfirmNext(!confirmNext)}><${Icon} size="18"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path><//></button>` : null}
+        </div>
+        ${status2 === 'Ahora' && confirmNext ? html`<div className="heropanel" aria-label=${'Pasar a ' + nextName}>
+          <b>Ya he cobrado · pasar a ${nextName}</b>
+          <p>${octText}</p>
+          <div className="backup">
+            <button className="hp-cancel" onClick=${() => setConfirmNext(false)}>Cancelar</button>
+            <button className="hp-go" onClick=${passToNext}>Pasar a ${nextName}</button>
+          </div>
+        </div>` : null}
         <div style=${{ display: 'flex', alignItems: 'baseline', gap: '8px' }}><span className=${'big' + (c.total < 0 ? ' neg' : '')}>${F(c.total)}</span><span className="eur">€</span></div>
         <div className="perday"><b>${days > 0 ? F(perDay) : '—'} €</b><span style=${{ fontSize: '16px', fontWeight: 600 }}>al día</span>
           <span className="d">${days > 0 ? 'Durante ' + days + (days === 1 ? ' día' : ' días') + ', hasta el ' + cobD.getDate() + ' de ' + MONTHS[cobD.getMonth()] : 'Elige el día en que vuelves a cobrar'}</span></div>
         ${prefs.showFormula ? html`<p className="formula">${parts.join(' ')} = <span>${F(c.total)} €</span></p>` : null}
-        ${c.inc.length ? html`<p className="prev">Por cobrar: <b>+${F(c.sum(c.inc))} €</b>. Cuando lo marques como recibido tendrás <b>${F(c.previsto)} €</b>.</p>` : null}
       </section>
 
       <section className="card saldo" aria-label="Cuenta y fecha de cobro">
         <div style=${{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label className="t" htmlFor="saldo">Tengo en la cuenta</label>
+          <div className="cardtop"><label className="t" htmlFor="saldo">Tengo en la cuenta</label>
+            ${p.carry ? html`<button className=${'roundbtn' + (showCarry ? ' open' : '')} aria-expanded=${showCarry ? 'true' : 'false'} aria-label=${'Ver con qué empezaste ' + MONTHS[p.mi % 12]} onClick=${() => setShowCarry(!showCarry)}><${Icon} size="18"><path d="M19 12H5"></path><path d="M11 6l-6 6 6 6"></path><//></button>` : null}
+          </div>
           <div className="field"><input id="saldo" inputMode="decimal" placeholder="0" value=${hide ? '' : p.saldo} disabled=${hide} onChange=${(e) => setPeriod({ saldo: e.target.value })} /><span>€</span></div>
-          ${p.carry ? html`<span className="note" style=${{ color: 'var(--pos)', fontWeight: 600 }}>Empezaste con ${F(p.carry.amount)} € libres de ${MONTHS[p.carry.mi % 12]}${p.carry.n ? ' y ' + p.carry.n + (p.carry.n === 1 ? ' pago pendiente' : ' pagos pendientes') + ' (' + F(p.carry.debt) + ' €)' : ''}.</span>` : null}
-          <span className="note">Al marcar un gasto se resta solo de aquí. Si no cuadra con tu banco, escribe la cifra real.</span>
+          ${p.carry && showCarry ? html`<span className="note carrynote">${carryText}</span>` : null}
         </div>
         <div className="cob"><label htmlFor="cobro" style=${{ fontWeight: 600 }}>Vuelvo a cobrar el</label>
           <input id="cobro" className="date" type="date" value=${p.cobro} onChange=${(e) => e.target.value && setPeriod({ cobro: e.target.value })} /></div>
@@ -1146,7 +1172,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       <div className="sechead"><h2>Pendientes</h2><button className="btn-solid" onClick=${() => openItem('new', null)}><${Plus} />Añadir</button></div>
       <p className="note" style=${{ margin: '-6px 2px 0' }}>Mantén pulsado un elemento y arrástralo para cambiar su orden.</p>
 
-      ${c.inc.length ? group('Ingresos previstos (aún no suman)', '+' + F(c.sum(c.inc)), true, rowsOf('inc')) : null}
+      ${c.inc.length ? group('Ingresos por cobrar', '+' + F(c.sum(c.inc)), true, rowsOf('inc')) : null}
 
       <section className="card group" aria-label="Fijos">
         <button className="toggle" aria-expanded=${openFijos ? 'true' : 'false'} onClick=${() => setOpenFijos(!openFijos)}>
