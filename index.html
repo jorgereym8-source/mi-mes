@@ -269,6 +269,9 @@ a.pill.place { color: var(--infoFg); }
 .viewlink { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 18px; background: var(--infoBg); color: var(--infoFg); font-size: 13px; font-weight: 700; text-decoration: none; }
 .hero .prev { margin: 0; font-size: 14px; line-height: 1.45; color: #C9CEDA; }
 .hero .prev b { color: #FFFFFF; font-variant-numeric: tabular-nums; }
+.secs { display: flex; flex-direction: column; gap: 14px; }
+.group.closed { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; position: relative; }
+.group.dragging { z-index: 20; box-shadow: 0 12px 30px rgba(17,19,24,0.22); }
 .row, .cap { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; position: relative; }
 .row.dragging, .cap.dragging { z-index: 20; background: var(--card); border-radius: 14px; box-shadow: 0 12px 30px rgba(17,19,24,0.22); transition: box-shadow .15s; }
 .row.dragging { border-top-color: transparent; }
@@ -303,6 +306,9 @@ a.pill.place { color: var(--infoFg); }
 .hp-cancel { background: rgba(255,255,255,0.12); color: #FFFFFF; }
 .hp-go { background: #FFFFFF; color: #111318; }
 .carrynote { color: var(--pos) !important; font-weight: 600; }
+.pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.pagehead > div { min-width: 0; display: flex; flex-direction: column; }
+.btn-acc { min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: var(--acc); color: #FFFFFF; font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; margin-bottom: 2px; }
 .okmsg { font-size: 13px; font-weight: 600; color: var(--pos); padding-bottom: 10px; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); font-size: 15px; }
 </style>
@@ -814,7 +820,6 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const [backupMsg, setBackupMsg] = useState('');
     const [screen, setScreen] = useState('main');
     const [piSel, setPiSel] = useState(null);
-    const [openFijos, setOpenFijos] = useState(true);
     const [openCob, setOpenCob] = useState(false);
     const [openComp, setOpenComp] = useState(false);
     const [dragState, setDragState] = useState(null);
@@ -1125,6 +1130,30 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       if (p.carry.ni) bits.push(p.carry.ni + (p.carry.ni === 1 ? ' cobro pendiente' : ' cobros pendientes') + ' (' + F(p.carry.cred) + ' €)');
       return 'Empezaste con ' + (bits.length > 1 ? bits.slice(0, -1).join(', ') + ' y ' + bits[bits.length - 1] : bits[0]) + '.';
     })();
+    const secOpen = (k) => ((prefs.openSec || {})[k] !== false);
+    const toggleSec = (k) => setPrefs({ openSec: Object.assign({}, prefs.openSec || {}, { [k]: !secOpen(k) }) });
+    const plur = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+    const secDefs = [
+      { key: 'inc', title: 'Ingresos por cobrar', show: c.inc.length > 0, meta: plur(c.inc.length, 'por cobrar', 'por cobrar'), value: '+' + F(c.sum(c.inc)), inc: true, empty: '' },
+      { key: 'fij', title: 'Fijos', show: true, meta: plur(c.fij.length, 'pendiente', 'pendientes'), value: '−' + F(c.sum(c.fij)), inc: false,
+        empty: data.fijos.length ? 'No queda ningún fijo por cobrar este mes.' : 'Añade tus fijos (luz, agua, gimnasio…) con Añadir y elige el grupo “Fijos”.' },
+      { key: 'deu', title: 'Deudas', show: c.deu.length > 0, meta: plur(c.deu.length, 'cuota pendiente', 'cuotas pendientes'), value: '−' + F(c.sum(c.deu)), inc: false, empty: '' },
+      { key: 'otr', title: 'Puntuales', show: c.otr.length > 0, meta: plur(c.otr.length, 'pendiente', 'pendientes'), value: '−' + F(c.sum(c.otr)), inc: false, empty: '' }
+    ];
+    const secList = ordered('sections', secDefs.filter((d) => d.show), (d) => 'sec-' + d.key);
+    const secIds = secList.map((d) => 'sec-' + d.key);
+    const collapsible = (sd) => {
+      const open = secOpen(sd.key);
+      const rows = open ? rowsOf(sd.key) : [];
+      return html`<section key=${sd.key} className=${'card group' + (open ? '' : ' closed')} aria-label=${sd.title} data-id=${'sec-' + sd.key} onPointerDown=${open ? null : dragStart('sections', 'sec-' + sd.key, secIds)}>
+        <button className="toggle" aria-expanded=${open ? 'true' : 'false'} onClick=${guard(() => toggleSec(sd.key))}>
+          <${Chev} open=${open} />
+          <span className="tx"><b>${sd.title}</b><span>${sd.meta}</span></span>
+          <span className=${'v' + (sd.inc ? ' inc' : '')}>${sd.value}</span>
+        </button>
+        ${open ? (rows.length ? rows.map((r) => html`<${Row} key=${r.key} r=${r} />`) : html`<p className="empty">${sd.empty}</p>`) : null}
+      </section>`;
+    };
     const isEmpty = !data.fijos.length && !data.deudas.length && !data.caprichos.length && data.periods.every((q) => !String(q.saldo || '').trim() && !q.items.length);
     const mainScreen = html`<div className="wrap" key="main">
       ${isEmpty ? html`<section className="card start" aria-label="Empezar">
@@ -1170,21 +1199,9 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       </section>
 
       <div className="sechead"><h2>Pendientes</h2><button className="btn-solid" onClick=${() => openItem('new', null)}><${Plus} />Añadir</button></div>
-      <p className="note" style=${{ margin: '-6px 2px 0' }}>Mantén pulsado un elemento y arrástralo para cambiar su orden.</p>
+      <p className="note" style=${{ margin: '-6px 2px 0' }}>Mantén pulsado un elemento para moverlo. Con una sección cerrada, puedes mover la sección entera.</p>
 
-      ${c.inc.length ? group('Ingresos por cobrar', '+' + F(c.sum(c.inc)), true, rowsOf('inc')) : null}
-
-      <section className="card group" aria-label="Fijos">
-        <button className="toggle" aria-expanded=${openFijos ? 'true' : 'false'} onClick=${() => setOpenFijos(!openFijos)}>
-          <${Chev} open=${openFijos} />
-          <span className="tx"><b>Fijos</b><span>${c.fij.length + (c.fij.length === 1 ? ' pendiente' : ' pendientes')}</span></span>
-          <span className="v">−${F(c.sum(c.fij))}</span>
-        </button>
-        ${openFijos ? (c.fij.length ? rowsOf('fij').map((r) => html`<${Row} key=${r.key} r=${r} />`) : html`<p className="empty">${data.fijos.length ? 'No queda ningún fijo por cobrar este mes.' : 'Añade tus fijos (luz, agua, gimnasio…) con Añadir y elige el grupo “Fijos”.'}</p>`) : null}
-      </section>
-
-      ${c.deu.length ? group('Deudas', '−' + F(c.sum(c.deu)), false, rowsOf('deu')) : null}
-      ${c.otr.length ? group('Puntuales', '−' + F(c.sum(c.otr)), false, rowsOf('otr')) : null}
+      <div className="secs">${secList.map((sd) => collapsible(sd))}</div>
 
       <section className="group gray" aria-label="Cobrados">
         <button className="toggle" aria-expanded=${openCob ? 'true' : 'false'} onClick=${() => setOpenCob(!openCob)}>
@@ -1225,8 +1242,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
       </article>`;
     });
     const deudasScreen = html`<div className="wrap" key="deudas">
-      <div style=${{ display: 'flex', justifyContent: 'flex-end' }}><button className="btn-solid" onClick=${() => openDeuda(null)}><${Plus} />Añadir</button></div>
-      <header><span className="eyebrow">Te quedan por pagar ${F(deudaPend)} €</span><h1 className="h1">Deudas</h1></header>
+      <header className="pagehead"><div><span className="eyebrow">Te quedan por pagar ${F(deudaPend)} €</span><h1 className="h1">Deudas</h1></div>
+        <button className="btn-acc" onClick=${() => openDeuda(null)}><${Plus} />Añadir</button></header>
       ${deudaCards.length ? deudaCards : html`<p className="card" style=${{ margin: 0, padding: '18px', color: 'var(--muted)' }}>No tienes deudas apuntadas. Añade aquí los pagos a plazos y lo que debes.</p>`}
       <button className="btn-dashed" onClick=${() => openDeuda(null)}>+ Añadir deuda o pago a plazos</button>
       <p className="note">Cada cuota aparece sola en los pendientes de su mes. Al marcarla como cobrada, avanza aquí.</p>
@@ -1264,8 +1281,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     const curLibre = calc(data, actPi).total;
     const curLibreMonth = MONTHS[data.periods[actPi].mi % 12];
     const caprichosScreen = html`<div className="wrap" key="caprichos">
-      <div style=${{ display: 'flex', justifyContent: 'flex-end' }}><button className="btn-solid" onClick=${() => openCap(null)}><${Plus} />Añadir</button></div>
-      <header><span className="eyebrow">Lo que quiero o necesito comprar</span><h1 className="h1">Compras</h1></header>
+      <header className="pagehead"><div><span className="eyebrow">Lo que quiero o necesito comprar</span><h1 className="h1">Compras</h1></div>
+        <button className="btn-acc" onClick=${() => openCap(null)}><${Plus} />Añadir</button></header>
       <div className="segctl" role="group" aria-label="Lista" style=${{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', background: 'var(--card)' }}>
         <button aria-pressed=${!isCasa ? 'true' : 'false'} onClick=${() => setCompCat('capricho')} style=${!isCasa ? { background: 'var(--solid)', color: 'var(--onSolid)' } : null}>Caprichos${countCat('capricho') ? ' · ' + countCat('capricho') : ''}</button>
         <button aria-pressed=${isCasa ? 'true' : 'false'} onClick=${() => setCompCat('casa')} style=${isCasa ? { background: 'var(--solid)', color: 'var(--onSolid)' } : null}>Cosas casa${countCat('casa') ? ' · ' + countCat('casa') : ''}</button>
